@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from itertools import pairwise
 
 from .context import GraphContext
 from .findings import Finding, make_finding
@@ -204,55 +203,115 @@ def encryption_and_secrets(ctx: GraphContext) -> list[Finding]:
 
 
 def circular_dependencies(ctx: GraphContext) -> list[Finding]:
-    """Cycles of synchronous calls between services can deadlock or cascade failures."""
+    """Cycles of synchronous calls between services can deadlock or cascade failures.
+
+    Policy (explicit): only *synchronous* edges between call-capable components
+    (service, gateway, auth service, worker) form dependency cycles. Asynchronous edges
+    (queues, events) may loop freely, and edges into data stores cannot close a call cycle.
+    One finding is reported per strongly connected group, listing every service and every
+    synchronous edge inside it, so no service on a cycle goes unreported. Self-loops are a
+    separate, blocking integrity error.
+    """
     callers = {"service", "api_gateway", "auth_service", "worker"}
     graph: dict[str, list[str]] = {nid: [] for nid, n in ctx.nodes.items() if n.type in callers}
-    edge_by_pair: dict[tuple[str, str], str] = {}
     for edge in ctx.doc.edges:
         if edge.synchronous and edge.source in graph and edge.target in graph:
             graph[edge.source].append(edge.target)
-            edge_by_pair[(edge.source, edge.target)] = edge.id
-    seen_cycles: set[frozenset[str]] = set()
     out = []
-    state: dict[str, int] = {}
-    stack: list[str] = []
-
-    def visit(nid: str) -> None:
-        state[nid] = 1
-        stack.append(nid)
-        for nxt in sorted(graph[nid]):
-            if state.get(nxt) == 1:
-                cycle = stack[stack.index(nxt) :]
-                key = frozenset(cycle)
-                if key not in seen_cycles:
-                    seen_cycles.add(key)
-                    path = [*cycle, nxt]
-                    edges = [edge_by_pair[(a, b)] for a, b in pairwise(path)]
-                    labels = " → ".join(ctx.nodes[i].label for i in path)
-                    out.append(
-                        make_finding(
-                            "sync-cycle",
-                            "warning",
-                            "recommendation",
-                            "Circular synchronous dependency",
-                            "Services that synchronously call each other in a loop can deadlock, "
-                            "amplify latency and fail together.",
-                            labels,
-                            "Break the cycle with an asynchronous message, or merge the "
-                            "responsibilities.",
-                            node_ids=cycle,
-                            edge_ids=edges,
-                        )
-                    )
-            elif state.get(nxt) is None:
-                visit(nxt)
-        stack.pop()
-        state[nid] = 2
-
-    for nid in sorted(graph):
-        if state.get(nid) is None:
-            visit(nid)
+    for component in _strongly_connected(graph):
+        members = set(component)
+        if len(component) < 2:
+            continue
+        edges = sorted(
+            e.id
+            for e in ctx.doc.edges
+            if e.synchronous and e.source in members and e.target in members
+        )
+        path = _cycle_through(min(component), graph, members)
+        labels = " → ".join(ctx.nodes[i].label for i in path)
+        extra = f" ({len(component)} services involved)" if len(component) > len(path) - 1 else ""
+        out.append(
+            make_finding(
+                "sync-cycle",
+                "warning",
+                "recommendation",
+                "Circular synchronous dependency",
+                "Services that synchronously call each other in a loop can deadlock, "
+                "amplify latency and fail together.",
+                labels + extra,
+                "Break the cycle with an asynchronous message, or merge the responsibilities.",
+                node_ids=sorted(component),
+                edge_ids=edges,
+            )
+        )
     return out
+
+
+def _strongly_connected(graph: dict[str, list[str]]) -> list[list[str]]:
+    """Tarjan's algorithm, iterative (no recursion limit), deterministic order."""
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    on_stack: set[str] = set()
+    stack: list[str] = []
+    result: list[list[str]] = []
+    counter = 0
+    for root in sorted(graph):
+        if root in index:
+            continue
+        work: list[tuple[str, int]] = [(root, 0)]
+        while work:
+            nid, child_i = work.pop()
+            if child_i == 0:
+                index[nid] = low[nid] = counter
+                counter += 1
+                stack.append(nid)
+                on_stack.add(nid)
+            children = sorted(graph[nid])
+            descended = False
+            while child_i < len(children):
+                nxt = children[child_i]
+                child_i += 1
+                if nxt not in index:
+                    work.append((nid, child_i))
+                    work.append((nxt, 0))
+                    descended = True
+                    break
+                if nxt in on_stack:
+                    low[nid] = min(low[nid], index[nxt])
+            if descended:
+                continue
+            if low[nid] == index[nid]:
+                component = []
+                while True:
+                    top = stack.pop()
+                    on_stack.discard(top)
+                    component.append(top)
+                    if top == nid:
+                        break
+                result.append(sorted(component))
+            if work:
+                parent = work[-1][0]
+                low[parent] = min(low[parent], low[nid])
+    return sorted(result)
+
+
+def _cycle_through(start: str, graph: dict[str, list[str]], members: set[str]) -> list[str]:
+    """Shortest cycle start → … → start inside one strongly connected group (BFS)."""
+    prev: dict[str, str] = {}
+    queue = [start]
+    for nid in queue:
+        for nxt in sorted(graph[nid]):
+            if nxt not in members:
+                continue
+            if nxt == start:
+                path = [nid]
+                while path[-1] != start:
+                    path.append(prev[path[-1]])
+                return [start, *reversed(path[:-1]), start] if nid != start else [start, start]
+            if nxt not in prev:
+                prev[nxt] = nid
+                queue.append(nxt)
+    return [start]  # unreachable for a strongly connected group of two or more
 
 
 def data_ownership(ctx: GraphContext) -> list[Finding]:
@@ -433,6 +492,7 @@ def operations_coverage(ctx: GraphContext) -> list[Finding]:
                     "how they are performed.",
                     "no decision mentions 'migration'",
                     "Record a decision on the migration tool and rollout strategy.",
+                    path="decisions",
                 )
             )
     return out
@@ -447,7 +507,11 @@ def requirement_conflicts(ctx: GraphContext) -> list[Finding]:
     out: list[Finding] = []
     doc = ctx.doc
     reqs = [*doc.requirements.functional, *doc.requirements.nonfunctional]
-    for constraint in doc.constraints:
+    req_paths = [f"requirements.functional.{i}" for i in range(len(doc.requirements.functional))]
+    req_paths += [
+        f"requirements.nonfunctional.{i}" for i in range(len(doc.requirements.nonfunctional))
+    ]
+    for ci, constraint in enumerate(doc.constraints):
         if constraint.kind != "forbids_technology" or not constraint.value.strip():
             continue
         banned = _norm(constraint.value)
@@ -467,10 +531,11 @@ def requirement_conflicts(ctx: GraphContext) -> list[Finding]:
                     "preferences ask for; both cannot be satisfied.",
                     f"constraint {constraint.id} ('{constraint.text}') vs " + "; ".join(where),
                     "Remove or change one of them, and record the decision.",
+                    path=f"constraints.{ci}.value",
                 )
             )
     seen: dict[str, str] = {}
-    for r in reqs:
+    for r, rpath in zip(reqs, req_paths, strict=True):
         key = _norm(r.text)
         if key and key in seen:
             out.append(
@@ -482,6 +547,7 @@ def requirement_conflicts(ctx: GraphContext) -> list[Finding]:
                     "The same requirement is listed twice, which makes priorities ambiguous.",
                     f"{seen[key]} and {r.id}: '{r.text}'",
                     "Merge them into one requirement.",
+                    path=f"{rpath}.text",
                 )
             )
         else:
@@ -491,7 +557,7 @@ def requirement_conflicts(ctx: GraphContext) -> list[Finding]:
 
 def constraint_checks(ctx: GraphContext) -> list[Finding]:
     out = []
-    for constraint in ctx.doc.constraints:
+    for ci, constraint in enumerate(ctx.doc.constraints):
         if (
             constraint.kind == "requires_component"
             and constraint.value
@@ -506,6 +572,7 @@ def constraint_checks(ctx: GraphContext) -> list[Finding]:
                     "An explicit project constraint requires this component type.",
                     f"constraint '{constraint.id}': {constraint.text}",
                     f"Add a component of type '{constraint.value}'.",
+                    path=f"constraints.{ci}.value",
                 )
             )
         if constraint.kind == "forbids_technology" and constraint.value:
@@ -523,6 +590,7 @@ def constraint_checks(ctx: GraphContext) -> list[Finding]:
                         + ", ".join(f"{n.label} uses {n.technology}" for n in offenders),
                         "Choose a different technology or revise the constraint.",
                         node_ids=[n.id for n in offenders],
+                        path=f"constraints.{ci}.value",
                     )
                 )
     return out
@@ -533,7 +601,7 @@ def unlinked_design(ctx: GraphContext) -> list[Finding]:
     out: list[Finding] = []
     if not ctx.doc.nodes:
         return out
-    for ent in ctx.doc.database.entities:
+    for ei, ent in enumerate(ctx.doc.database.entities):
         if ent.node_id is None:
             out.append(
                 make_finding(
@@ -545,9 +613,10 @@ def unlinked_design(ctx: GraphContext) -> list[Finding]:
                     "unclear.",
                     f"entity '{ent.name}' has no node_id",
                     "Link it to a database component (Database Design workspace).",
+                    path=f"database.entities.{ei}.node_id",
                 )
             )
-    for ep in ctx.doc.api.endpoints:
+    for xi, ep in enumerate(ctx.doc.api.endpoints):
         if ep.service_node_id is None:
             out.append(
                 make_finding(
@@ -558,8 +627,69 @@ def unlinked_design(ctx: GraphContext) -> list[Finding]:
                     "No component is responsible for this endpoint.",
                     f"{ep.method} {ep.path} has no service_node_id",
                     "Assign the service that implements it (API Design workspace).",
+                    path=f"api.endpoints.{xi}.service_node_id",
                 )
             )
+    return out
+
+
+# Column types PostgreSQL can join in a foreign key (same family).
+_FK_FAMILY = {
+    "integer": "int",
+    "bigint": "int",
+    "text": "text",
+    "varchar": "text",
+}
+
+
+def relational_consistency(ctx: GraphContext) -> list[Finding]:
+    """Foreign keys that the generated PostgreSQL DDL could not create.
+
+    Reported (not blocked) like other cross-references, so editing a schema step by step
+    is never stuck; the finding says the DDL export would fail.
+    """
+    out: list[Finding] = []
+    ents = {e.id: e for e in ctx.doc.database.entities}
+    for ei, entity in enumerate(ctx.doc.database.entities):
+        for fi, fld in enumerate(entity.fields):
+            fk = fld.foreign_key
+            target = ents.get(fk.entity_id) if fk else None
+            if fk is None or target is None:
+                continue
+            col = next((f for f in target.fields if f.name == fk.field), None)
+            if col is None:
+                continue  # integrity error fk-missing-field
+            at = f"database.entities.{ei}.fields.{fi}"
+            pks = [f for f in target.fields if f.primary_key]
+            if not (col.unique or (col.primary_key and len(pks) == 1)):
+                out.append(
+                    make_finding(
+                        "fk-target-not-unique",
+                        "error",
+                        "recommendation",
+                        "Foreign key references a non-unique column",
+                        "A foreign key must reference a primary key or unique column; the "
+                        "generated SQL DDL would be rejected by PostgreSQL.",
+                        f"{entity.name}.{fld.name} → {target.name}.{col.name} "
+                        "(not unique, not the sole primary key)",
+                        f"Reference {target.name}'s primary key, or mark {col.name} unique.",
+                        path=f"{at}.foreign_key.field",
+                    )
+                )
+            if _FK_FAMILY.get(fld.type, fld.type) != _FK_FAMILY.get(col.type, col.type):
+                out.append(
+                    make_finding(
+                        "fk-type-mismatch",
+                        "error",
+                        "recommendation",
+                        "Foreign key type differs from the referenced column",
+                        "PostgreSQL cannot create a foreign key between incompatible types.",
+                        f"{entity.name}.{fld.name} is {fld.type}, "
+                        f"{target.name}.{col.name} is {col.type}",
+                        f"Change {fld.name} to {col.type}.",
+                        path=f"{at}.type",
+                    )
+                )
     return out
 
 
@@ -576,6 +706,7 @@ ALL_RULES: tuple[Rule, ...] = (
     constraint_checks,
     requirement_conflicts,
     unlinked_design,
+    relational_consistency,
     ui_references,
     design_tokens,
     accessibility_requirements,

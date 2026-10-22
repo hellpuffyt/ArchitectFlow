@@ -11,6 +11,7 @@ from collections import Counter
 
 from ..design.contrast import contrast_ratio
 from ..schema import LayoutNode, Page, walk
+from ..schema.design import walk_paths
 from .context import GraphContext
 from .findings import Finding, make_finding
 
@@ -33,9 +34,10 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
     endpoints = {e.id: e for e in ctx.doc.api.endpoints}
     entities = {e.id: e for e in ctx.doc.database.entities}
     pages = {p.id: p for p in design.pages}
-    for page in design.pages:
+    for pi, page in enumerate(design.pages):
         where = f"page {page.name} ({page.route})"
-        for node in _nodes(page):
+        at_page = f"design.pages.{pi}"
+        for node, _, at in walk_paths(page.layout, f"{at_page}.layout"):
             # 1. component calling a nonexistent API
             for ep_id in filter(
                 None, [node.endpoint_id, node.interaction.endpoint_id if node.interaction else None]
@@ -51,6 +53,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                             f"{where}: {_label(node)} → endpoint '{ep_id}'",
                             "Re-link the component to an existing endpoint, or restore the "
                             "endpoint in API design.",
+                            path=at,
                         )
                     )
             # 5. screen referencing an entity absent from the architecture
@@ -67,6 +70,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                             "The entity does not exist in the database design.",
                             f"{where}: {_label(node)} → entity '{ent_id}'",
                             "Link to an existing entity or add it in Database design.",
+                            path=at,
                         )
                     )
             if node.binding and node.binding.entity_id in entities and node.binding.entity_field:
@@ -82,6 +86,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                             f"{where}: {_label(node)} → "
                             f"{entities[node.binding.entity_id].name}.{node.binding.entity_field}",
                             "Bind the input to an existing column.",
+                            path=f"{at}.binding.entity_field",
                         )
                     )
             inter = node.interaction
@@ -100,6 +105,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                         "The navigation target is missing.",
                         f"{where}: {_label(node)} → '{inter.target_page_id}'",
                         "Point the link at an existing page or create the page.",
+                        path=f"{at}.interaction",
                     )
                 )
             # 4. user action with no outcome
@@ -114,6 +120,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                         "decorative control.",
                         f"{where}: {_label(node)}",
                         "Give the button an interaction (navigate, call API, open/close modal).",
+                        path=at,
                     )
                 )
             if inter and inter.action == "call_api" and inter.endpoint_id is None:
@@ -126,10 +133,11 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                         "The action says it calls an API but names none.",
                         f"{where}: {_label(node)}",
                         "Choose the endpoint.",
+                        path=f"{at}.interaction",
                     )
                 )
             if node.kind == "form":
-                out.extend(_form_checks(where, node, endpoints))
+                out.extend(_form_checks(where, node, endpoints, at))
         # 3. page requiring auth with no access rule
         if page.requires_auth and not page.roles:
             out.append(
@@ -141,6 +149,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "The page requires sign-in but does not say which roles may open it.",
                     f"{where}",
                     "Select the roles allowed to view this page (or mark it public).",
+                    path=f"{at_page}.roles",
                 )
             )
         unknown_roles = [r for r in page.roles if r not in {a.id for a in ctx.doc.actors}]
@@ -154,6 +163,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "Roles must exist in Requirements.",
                     f"{where}: {', '.join(unknown_roles)}",
                     "Define the role or remove it from the page.",
+                    path=f"{at_page}.roles.{page.roles.index(unknown_roles[0])}",
                 )
             )
         calls = [
@@ -174,6 +184,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "when the call fails.",
                     f"{where}: missing {', '.join(missing)}",
                     "Add the missing page states and their messages.",
+                    path=f"{at_page}.states",
                 )
             )
         if any(n.kind in _DATA_VIEWS for n in _nodes(page)) and "empty" not in kinds:
@@ -186,6 +197,7 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "Lists and tables need an empty state.",
                     f"{where}",
                     "Add an 'empty' page state with a helpful message.",
+                    path=f"{at_page}.states",
                 )
             )
         wide = [
@@ -205,9 +217,16 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     f"{where}: {', '.join(_label(n) for n in wide[:3])}",
                     "Add a mobile (sm) rule: fewer columns, column direction, or hide secondary "
                     "elements.",
+                    path=f"{at_page}.layout",
                 )
             )
     routes = Counter(p.route for p in design.pages)
+    first_repeat: dict[str, int] = {}
+    seen_routes: set[str] = set()
+    for pi, p in enumerate(design.pages):
+        if p.route in seen_routes:
+            first_repeat.setdefault(p.route, pi)
+        seen_routes.add(p.route)
     for route, count in routes.items():
         if count > 1:
             out.append(
@@ -219,9 +238,10 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "Each route must resolve to one page.",
                     f"route {route} used {count} times",
                     "Change one of the routes.",
+                    path=f"design.pages.{first_repeat[route]}.route",
                 )
             )
-    for journey in design.journeys:
+    for ji, journey in enumerate(design.journeys):
         if journey.role_id and journey.role_id not in {a.id for a in ctx.doc.actors}:
             out.append(
                 make_finding(
@@ -232,20 +252,22 @@ def ui_references(ctx: GraphContext) -> list[Finding]:
                     "The journey's role is not defined.",
                     f"journey {journey.name} → '{journey.role_id}'",
                     "Pick an existing role.",
+                    path=f"design.journeys.{ji}.role_id",
                 )
             )
     return out
 
 
-def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]:  # type: ignore[type-arg]
+def _form_checks(where: str, form: LayoutNode, endpoints: dict, at: str) -> list[Finding]:  # type: ignore[type-arg]
     out: list[Finding] = []
-    inputs = [n for n, _ in walk(form) if n.kind in _INPUTS]
+    located = [(n, p) for n, _, p in walk_paths(form, at) if n.kind in _INPUTS]
+    inputs = [n for n, _ in located]
     submit = form.interaction if form.interaction and form.interaction.trigger == "submit" else None
     ep_id = form.endpoint_id or (submit.endpoint_id if submit else None)
     ep = endpoints.get(ep_id) if ep_id else None
     if ep_id is None:
         # 2. form field with no data destination
-        for inp in inputs:
+        for inp, inp_at in located:
             if not (inp.binding and inp.binding.entity_id):
                 out.append(
                     make_finding(
@@ -256,6 +278,7 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
                         "Neither the form nor the field says where the value is sent or stored.",
                         f"{where}: {_label(inp)} in form {form.id}",
                         "Link the form to an endpoint, or bind the field to an entity column.",
+                        path=inp_at,
                     )
                 )
         return out
@@ -263,7 +286,7 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
         return out  # reported by ui-missing-endpoint
     req = {f.name: f for f in ep.request_fields}
     names = {str(i.props.get("name", "")) for i in inputs}
-    for inp in inputs:
+    for inp, inp_at in located:
         name = str(inp.props.get("name", ""))
         if name not in req:
             out.append(
@@ -275,6 +298,7 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
                     f"{ep.method} {ep.path} has no request field named '{name}'.",
                     f"{where}: {_label(inp)}",
                     "Rename the field (props.name) or add it to the endpoint's request schema.",
+                    path=f"{inp_at}.props",
                 )
             )
         elif inp.props.get("type") in {"number"} and req[name].type in {"text", "varchar"}:
@@ -287,6 +311,7 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
                     "The input collects a number but the API expects text.",
                     f"{where}: {_label(inp)} vs {ep.method} {ep.path}.{name}:{req[name].type}",
                     "Align the input type with the request schema.",
+                    path=f"{inp_at}.props",
                 )
             )
     for name, f in req.items():
@@ -300,6 +325,7 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
                     f"{ep.method} {ep.path} requires '{name}' but the form has no such input.",
                     f"{where}: form {form.id}",
                     "Add an input with props.name='" + name + "'.",
+                    path=f"{at}.children",
                 )
             )
     return out
@@ -308,7 +334,8 @@ def _form_checks(where: str, form: LayoutNode, endpoints: dict) -> list[Finding]
 def design_tokens(ctx: GraphContext) -> list[Finding]:
     """Measurable WCAG contrast and token consistency for every theme."""
     out: list[Finding] = []
-    for theme in ctx.doc.design.themes:
+    for ti, theme in enumerate(ctx.doc.design.themes):
+        at = f"design.themes.{ti}"
         modes = {"light": theme.light, "dark": theme.dark}
         used = ["light", "dark"] if theme.appearance == "system" else [theme.appearance]
         for mode in used:
@@ -334,6 +361,7 @@ def design_tokens(ctx: GraphContext) -> list[Finding]:
                             f"{ratio:.2f}:1",
                             f"Darken/lighten {fg_name} or {bg_name} until the "
                             f"ratio is ≥ {minimum}:1.",
+                            path=f"{at}.{mode}",
                         )
                     )
         bp = theme.layout.breakpoints
@@ -347,6 +375,7 @@ def design_tokens(ctx: GraphContext) -> list[Finding]:
                     "The small breakpoint must be narrower than the medium one.",
                     f"theme {theme.name}: sm={bp.sm} md={bp.md}",
                     "Set sm < md.",
+                    path=f"{at}.layout.breakpoints",
                 )
             )
         if theme.typography.base_size < 14:
@@ -359,6 +388,7 @@ def design_tokens(ctx: GraphContext) -> list[Finding]:
                     "Body text below 14px is hard to read for many users.",
                     f"theme {theme.name}: base_size={theme.typography.base_size}",
                     "Use at least 14px (16px is a common default).",
+                    path=f"{at}.typography.base_size",
                 )
             )
         if theme.motion.intensity != "none" and not theme.motion.respect_reduced_motion:
@@ -371,6 +401,7 @@ def design_tokens(ctx: GraphContext) -> list[Finding]:
                     "Users who ask the OS for reduced motion will still see animations.",
                     f"theme {theme.name}",
                     "Enable respect_reduced_motion.",
+                    path=f"{at}.motion.respect_reduced_motion",
                 )
             )
     return out
@@ -392,5 +423,6 @@ def accessibility_requirements(ctx: GraphContext) -> list[Finding]:
             "The project has UI pages but no stated accessibility target.",
             f"{len(ctx.doc.design.pages)} page(s), no accessibility requirement",
             "Add a non-functional requirement such as 'WCAG 2.2 AA'.",
+            path="requirements.nonfunctional",
         )
     ]

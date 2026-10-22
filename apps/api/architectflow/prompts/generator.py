@@ -13,6 +13,7 @@ Every statement is labeled:
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 
 from ..schema import NODE_TYPES, ArchitectureDocument, PromptSection, PromptSettings
@@ -178,6 +179,11 @@ def _journeys(doc: ArchitectureDocument) -> list[str]:
     return out
 
 
+def _cell(text: str) -> str:
+    """Markdown table cell: user text must not add rows or columns."""
+    return re.sub(r"\s*[\r\n]+\s*", " ", text).replace("|", "\\|")
+
+
 def _components(doc: ArchitectureDocument) -> list[str]:
     out = [
         "## Components",
@@ -188,8 +194,8 @@ def _components(doc: ArchitectureDocument) -> list[str]:
         spec = NODE_TYPES.get(n.type)
         tech = n.technology or f"{U} choose"
         out.append(
-            f"| `{n.id}` | {spec.label if spec else n.type} | {n.label} | {tech} | "
-            f"{n.description or '—'} | {n.replicas} |"
+            f"| `{n.id}` | {spec.label if spec else n.type} | {_cell(n.label)} | {_cell(tech)} | "
+            f"{_cell(n.description) or '—'} | {n.replicas} |"
         )
     if not doc.nodes:
         out = ["## Components", f"{U} The architecture graph is empty."]

@@ -97,6 +97,8 @@ export interface Finding {
   remediation: string;
   node_ids: string[];
   edge_ids: string[];
+  /** Dotted document path of the field to fix (e.g. "api.endpoints.2.service_node_id"). */
+  path?: string;
 }
 export interface ChangeSet {
   id: string;

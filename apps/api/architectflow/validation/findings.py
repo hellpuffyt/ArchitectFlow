@@ -30,6 +30,10 @@ class Finding(BaseModel):
     remediation: str
     node_ids: list[str] = Field(default_factory=list)
     edge_ids: list[str] = Field(default_factory=list)
+    # Where in the document to fix it: a dotted path in the same format as schema errors
+    # (``edges.3.target``, ``design.pages.0.layout.children.2``). For findings about
+    # something *absent*, it names the collection where the fix belongs (e.g. ``decisions``).
+    path: str = ""
 
 
 def make_finding(
@@ -42,6 +46,7 @@ def make_finding(
     remediation: str,
     node_ids: list[str] | None = None,
     edge_ids: list[str] | None = None,
+    path: str = "",
 ) -> Finding:
     """Build a finding with a stable id derived from the rule and affected elements."""
     nodes = sorted(node_ids or [])
@@ -60,4 +65,5 @@ def make_finding(
         remediation=remediation,
         node_ids=nodes,
         edge_ids=edges,
+        path=path,
     )

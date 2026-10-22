@@ -10,7 +10,7 @@ import { ChangeSetReview } from "@/components/canvas/ChangeSetReview";
 import { Button, ErrorBox, Textarea } from "@/components/ui";
 
 export function VisionView({ prefillSample, onApplied }: { prefillSample: boolean; onApplied: () => void }) {
-  const { doc, project, head, edit, status, saveNow } = useProject();
+  const { doc, project, edit, status, saveNow, currentHead } = useProject();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [proposal, setProposal] = useState<ChangeSet | null>(null);
@@ -26,7 +26,7 @@ export function VisionView({ prefillSample, onApplied }: { prefillSample: boolea
     setError(null);
     try {
       if (status !== "saved" && !(await saveNow())) throw new ApiError(409, "Your latest edits are not saved yet; resolve the save problem first.");
-      setProposal(await api.generate(project.id, doc.vision, head));
+      setProposal(await api.generate(project.id, doc.vision, currentHead()));
     } catch (e) {
       setError(e as ApiError);
     } finally {

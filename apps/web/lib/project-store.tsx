@@ -33,6 +33,11 @@ interface Store {
   undo: () => void;
   redo: () => void;
   saveNow: () => Promise<boolean>;
+  /**
+   * The head revision right now. Use it as the base of a server operation that runs after
+   * `await saveNow()`: `head` captured by the render that started the handler is stale then.
+   */
+  currentHead: () => number;
   /** Adopt a document the server already saved (AI apply, restore). */
   adoptServerDocument: (doc: ArchitectureDocument, head: number) => void;
   /**
@@ -147,6 +152,7 @@ export function ProjectProvider({ id, children }: { id: string; children: ReactN
       return { past: [...h.past, base].slice(-200), present: h.present, future: [] };
     });
   }, []);
+  const currentHead = useCallback(() => headRef.current, []);
   const undo = useCallback(() => setHist((h) => (h ? undoH(h) : h)), []);
   const redo = useCallback(() => setHist((h) => (h ? redoH(h) : h)), []);
 
@@ -194,8 +200,8 @@ export function ProjectProvider({ id, children }: { id: string; children: ReactN
     project, loadError, doc, head, status: shownStatus, saveError,
     canUndo: (hist?.past.length ?? 0) > 0, canRedo: (hist?.future.length ?? 0) > 0,
     selection, setSelection, edit, beginGesture, transientEdit, endGesture, undo, redo, saveNow,
-    adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject,
+    currentHead, adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject,
   }), [project, loadError, doc, head, shownStatus, saveError, hist, selection, edit, beginGesture, transientEdit,
-    endGesture, undo, redo, saveNow, adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject]);
+    endGesture, undo, redo, saveNow, currentHead, adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

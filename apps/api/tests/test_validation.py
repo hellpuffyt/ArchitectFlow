@@ -113,7 +113,8 @@ def test_empty_document_has_no_findings() -> None:
 def test_integrity_errors_block_parse(raw: dict[str, Any], needle: str) -> None:
     with pytest.raises(DocumentInvalid) as exc:
         parse_document(raw)
-    assert any(needle in e["path"] for e in exc.value.errors), exc.value.errors
+    # integrity errors name the rule and the field path of the offending value
+    assert any(e.get("rule") == needle and e["path"] for e in exc.value.errors), exc.value.errors
 
 
 def test_unknown_fields_and_bad_ids_rejected() -> None:

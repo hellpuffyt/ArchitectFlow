@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.exc import DataError, OperationalError, SQLAlchemyError
 
 from . import __version__
 from .config import get_settings
@@ -48,6 +49,32 @@ def create_app() -> FastAPI:
             status_code=503,
         )
 
+    @app.exception_handler(DataError)
+    async def db_rejected_value(_: Request, exc: DataError) -> JSONResponse:
+        # The database refused a submitted value (e.g. a NUL character in text or an
+        # out-of-range number). That is the client's input, not a server fault.
+        return JSONResponse(
+            {
+                "detail": "A submitted value cannot be stored (for example text containing a "
+                "NUL character, or a number out of range); nothing was saved."
+            },
+            status_code=422,
+        )
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(_: Request, exc: RequestValidationError) -> JSONResponse:
+        # FastAPI's default echoes the offending input back, which fails (RecursionError)
+        # on deeply nested bodies and can be very large; report location and reason only.
+        errors = [
+            {
+                "type": str(e.get("type", "")),
+                "loc": [_printable(p) for p in e.get("loc", ())][:20],
+                "msg": _printable(e.get("msg", "invalid")),
+            }
+            for e in exc.errors()[:50]
+        ]
+        return JSONResponse({"detail": errors}, status_code=422)
+
     @app.exception_handler(SQLAlchemyError)
     async def db_error(_: Request, exc: SQLAlchemyError) -> JSONResponse:
         return JSONResponse(
@@ -61,6 +88,13 @@ def create_app() -> FastAPI:
     for module in (auth, projects, ai, prompts, design, exports, share, account):
         app.include_router(module.router)
     return app
+
+
+def _printable(value: object) -> str | int:
+    if isinstance(value, int):
+        return value
+    text = str(value)[:200]
+    return text.encode("utf-8", "backslashreplace").decode("utf-8")
 
 
 app = create_app()

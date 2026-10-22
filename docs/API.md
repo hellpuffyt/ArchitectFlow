@@ -19,5 +19,6 @@ endpoints are under `/api`; authenticated endpoints use the session cookie and, 
 | Design | `GET /design/presets` |
 
 Errors: `401` not signed in, `403` CSRF/password, `404` not found *or not yours*, `409` conflict,
-`413` body too large, `422` validation (with `errors: [{path, message}]`), `428` confirmation
-needed, `429` rate limit, `502/503/504` provider or database unavailable (the design is unchanged).
+`413` body too large, `422` validation (with `errors: [{path, message}]`; integrity errors also
+carry `rule`; values the database cannot store, such as NUL characters, are 422 too), `428`
+confirmation needed, `429` rate limit, `502/503/504` provider or database unavailable (the design is unchanged).

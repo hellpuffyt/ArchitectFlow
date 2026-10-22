@@ -13,7 +13,7 @@ const EXAMPLES = ["premium dark SaaS dashboard with emerald accents", "compact s
 
 /** Visual changes are proposed as structured change sets and applied only after review. */
 export function DesignAssistant() {
-  const { project, head, status, saveNow } = useProject();
+  const { project, status, saveNow, currentHead } = useProject();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -24,7 +24,7 @@ export function DesignAssistant() {
     setError(null);
     try {
       if (status !== "saved" && !(await saveNow())) throw new ApiError(409, "Save your changes first.");
-      setCs(kind === "pages" ? await api.pagesProposal(project!.id, head) : await api.designProposal(project!.id, text, head));
+      setCs(kind === "pages" ? await api.pagesProposal(project!.id, currentHead()) : await api.designProposal(project!.id, text, currentHead()));
     } catch (e) { setError(e as ApiError); } finally { setBusy(false); }
   }
   return (

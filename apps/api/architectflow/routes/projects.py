@@ -242,6 +242,7 @@ def restore_revision(
     project_id: uuid.UUID, number: int, body: RestoreBody, principal: CurrentPrincipal, db: DB
 ) -> dict[str, Any]:
     project = lock_project(db, project_id, principal.user.id)
+    ensure_not_archived(project)
     old = get_revision(db, project.id, number)
     doc = validated(old.document)
     rev = append_revision(

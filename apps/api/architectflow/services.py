@@ -51,7 +51,13 @@ def head_document(db: Session, project: Project) -> tuple[Revision, Architecture
     return rev, ArchitectureDocument.model_validate(rev.document)
 
 
+# Revision numbers are stored as a 32-bit integer column.
+MAX_REVISION = 2**31 - 1
+
+
 def get_revision(db: Session, project_id: uuid.UUID, number: int) -> Revision:
+    if not 1 <= number <= MAX_REVISION:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Revision {number} not found.")
     rev = db.scalars(
         select(Revision).where(Revision.project_id == project_id, Revision.number == number)
     ).first()

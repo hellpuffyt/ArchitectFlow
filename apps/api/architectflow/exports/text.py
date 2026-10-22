@@ -7,10 +7,11 @@ import re
 
 def mermaid_label(text: str) -> str:
     """Safe text for a double-quoted Mermaid label."""
-    t = re.sub(r"[\r\n\t]+", " ", text).strip()
+    # Truncate before escaping so an entity like "#amp;" is never cut in half.
+    t = re.sub(r"[\r\n\t]+", " ", text).strip()[:200]
     t = t.replace("&", "#amp;").replace('"', "#quot;").replace("<", "#lt;")
     t = t.replace(">", "#gt;").replace("`", "'").replace("|", "#124;")
-    return t[:200] or " "
+    return t or " "
 
 
 def plantuml_label(text: str) -> str:

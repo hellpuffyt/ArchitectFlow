@@ -27,7 +27,7 @@ PropValue = str | int | float | bool
 
 
 class _Model(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, allow_inf_nan=False)
 
 
 RequirementCategory = Literal[

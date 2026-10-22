@@ -18,7 +18,7 @@ export function AiNotice() {
 
 /** Ask for a design change; the result is a reviewable change set, never a silent edit. */
 export function Assistant() {
-  const { project, head, status, saveNow } = useProject();
+  const { project, status, saveNow, currentHead } = useProject();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -35,7 +35,7 @@ export function Assistant() {
     setError(null);
     try {
       if (status !== "saved" && !(await saveNow())) throw new ApiError(409, "Save your changes before asking for a proposal.");
-      setCurrent(await api.edit(project.id, text, head));
+      setCurrent(await api.edit(project.id, text, currentHead()));
     } catch (e) {
       setError(e as ApiError);
     } finally {

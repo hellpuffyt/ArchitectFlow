@@ -165,9 +165,10 @@ def test_contrast_rule_reports_measured_ratio() -> None:
 def test_design_integrity_rejects(patch: dict[str, Any], needle: str) -> None:
     with pytest.raises(DocumentInvalid) as exc:
         parse_document({"design": patch})
-    assert any(needle in e["path"] or needle in e["message"] for e in exc.value.errors), (
-        exc.value.errors
-    )
+    assert any(
+        needle in e["path"] or needle == e.get("rule") or needle in e["message"]
+        for e in exc.value.errors
+    ), exc.value.errors
 
 
 def test_layout_depth_limit() -> None:
@@ -178,7 +179,8 @@ def test_layout_depth_limit() -> None:
         parse_document(
             {"design": {"pages": [{"id": "p", "name": "P", "route": "/", "layout": node}]}}
         )
-    assert any("layout-too-deep" in e["path"] for e in exc.value.errors)
+    assert any(e.get("rule") == "layout-too-deep" for e in exc.value.errors)
+    assert any(e["path"].startswith("design.pages.0.layout.children.0") for e in exc.value.errors)
 
 
 def test_generated_pages_come_from_saved_entities_and_endpoints() -> None:

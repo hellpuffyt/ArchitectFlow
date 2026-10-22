@@ -24,7 +24,7 @@ MAX_LAYOUT_DEPTH = 12
 
 
 class _Model(BaseModel):
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True, allow_inf_nan=False)
 
 
 class Palette(_Model):
@@ -251,4 +251,18 @@ def walk(node: LayoutNode, depth: int = 0) -> list[tuple[LayoutNode, int]]:
     out = [(node, depth)]
     for child in node.children:
         out.extend(walk(child, depth + 1))
+    return out
+
+
+def walk_paths(root: LayoutNode, prefix: str) -> list[tuple[LayoutNode, int, str]]:
+    """Depth-first ``(node, depth, path)`` for a layout tree (iterative)."""
+    out: list[tuple[LayoutNode, int, str]] = []
+    stack = [(root, 0, prefix)]
+    while stack:
+        node, depth, path = stack.pop()
+        out.append((node, depth, path))
+        stack.extend(
+            (child, depth + 1, f"{path}.children.{i}")
+            for i, child in reversed(list(enumerate(node.children)))
+        )
     return out

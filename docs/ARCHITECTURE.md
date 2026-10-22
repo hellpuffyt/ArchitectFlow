@@ -50,13 +50,38 @@ document (bounded by `ARCHITECTFLOW_MAX_REQUEST_BYTES`, default 2 MB).
 
 ## Integrity vs recommendations
 
-- **Integrity gate** (`validation/integrity.py`): definite structural defects — duplicate ids,
-  dangling edges, unknown node types, FKs to missing columns, endpoints implemented by missing
-  services, layout nesting, page hierarchy cycles. A document that fails is **never stored**;
-  the API returns 422 with `{path, message}` errors.
+- **Untrusted-input pre-check** (`validation/untrusted.py`): before schema validation, raw JSON
+  is rejected if it nests deeper than 64 levels, contains NUL (U+0000) or unpaired surrogates, or
+  `NaN`/`Infinity` (none of which PostgreSQL `jsonb` can store). The walk is iterative.
+- **Integrity gate** (`validation/integrity.py`): definite structural defects — duplicate ids
+  (nodes, edges, groups, actors, workflows, requirements, constraints, assumptions, decisions,
+  acceptance criteria, entity fields, pages, themes, layout elements, endpoints), dangling edges,
+  self-loops, unknown node types, contradictory group membership (a node in two groups, or
+  `group_id` disagreeing with the group's `node_ids`), FKs to missing columns, routes that differ
+  only in path-parameter names, endpoints implemented by missing services, layout nesting, page
+  hierarchy cycles. A document that fails is **never stored**; the API returns 422 with
+  `{path, rule, message}` errors where `path` is the dotted location (`edges.3.target`).
 - **Recommendations** (`validation/rules.py`, `ui_rules.py`): judgement calls with severity,
   evidence and remediation. Links from UI to APIs/entities/pages are *soft*: they may dangle
   after an architecture change and are reported, so neither side silently deletes the other.
+  Foreign keys that PostgreSQL would reject (non-unique target, incompatible type) are reported
+  the same way (`fk-target-not-unique`, `fk-type-mismatch`).
+- **Locations:** every finding carries `node_ids`/`edge_ids` and/or `path` (a dotted path that
+  resolves inside the saved document; for "something is missing" findings it names the
+  collection where the fix belongs, e.g. `decisions`). A test triggers every rule id and checks
+  each path resolves.
+
+### Cycles (explicit policy)
+
+| Cycle kind | Handling |
+|---|---|
+| Self-loop edge | Integrity error (blocked). |
+| Synchronous call cycle between services/gateways/auth services/workers | `sync-cycle` warning, one finding per strongly connected group listing every service and synchronous edge in it, plus one concrete cycle as evidence (iterative Tarjan; no recursion limit). |
+| Cycle that includes an asynchronous edge | Allowed (event/queue loops are normal). |
+| Edges into data stores | Cannot close a call cycle (stores do not call). |
+| Page `parent_id` cycle | Integrity error (blocked). |
+| Foreign-key cycle between entities | Allowed; the DDL adds foreign keys after all tables. |
+| `two_way` edges | Not expanded into a reverse call; model a mutual dependency as two edges. |
 
 ## Change flow
 

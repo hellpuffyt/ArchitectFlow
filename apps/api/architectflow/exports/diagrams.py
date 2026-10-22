@@ -46,11 +46,11 @@ def mermaid_flowchart(
     ids = _ids(doc)
     lines = ["flowchart LR"]
     grouped: set[str] = set()
-    for g in doc.groups:
+    for gi, g in enumerate(doc.groups):
         members = [m for m in g.node_ids if m in keep]
         if not members:
             continue
-        lines.append(f'  subgraph {ident(len(grouped), "g")}["{mermaid_label(g.label)}"]')
+        lines.append(f'  subgraph {ident(gi, "g")}["{mermaid_label(g.label)}"]')
         lines += [_node_line(doc, m, ids) for m in members]
         lines.append("  end")
         grouped |= set(members)

@@ -68,6 +68,7 @@ export function ValidationView({ onShow }: { onShow: (f: Finding) => void }) {
             <p className="mt-1.5 text-sm text-muted">{f.explanation}</p>
             <p className="mt-1 text-xs"><span className="text-faint">Evidence:</span> {f.evidence}</p>
             <p className="mt-0.5 text-xs"><span className="text-faint">Fix:</span> {f.remediation}</p>
+            {f.path && <p className="mt-0.5 text-xs"><span className="text-faint">Location:</span> <code data-testid="finding-path">{f.path}</code></p>}
             {(f.node_ids.length > 0 || f.edge_ids.length > 0) && (
               <Button size="sm" variant="ghost" className="mt-1.5" onClick={() => onShow(f)}>Show on canvas</Button>
             )}

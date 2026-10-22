@@ -9,7 +9,7 @@ import { Badge, Button, Dialog, ErrorBox } from "@/components/ui";
 import { ExportsPanel } from "./ExportsPanel";
 
 export function VersionsView() {
-  const { project, head, status, saveNow, adoptServerDocument, serverOp } = useProject();
+  const { project, head, status, saveNow, currentHead, adoptServerDocument, serverOp } = useProject();
   const [revs, setRevs] = useState<RevisionSummary[] | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [restoring, setRestoring] = useState<RevisionSummary | null>(null);
@@ -25,7 +25,7 @@ export function VersionsView() {
     try {
       if (status !== "saved" && !(await saveNow())) throw new ApiError(409, "Resolve the unsaved changes first.");
       await serverOp(async () => {
-        const res = await api.restore(project.id, r.number, head);
+        const res = await api.restore(project.id, r.number, currentHead());
         adoptServerDocument(res.document, res.head_revision);
       });
     } catch (e) { setError(e as ApiError); } finally { setRestoring(null); }
@@ -56,7 +56,7 @@ export function VersionsView() {
     try {
       if (status !== "saved" && !(await saveNow())) throw new ApiError(409, "Resolve the unsaved changes first.");
       await serverOp(async () => {
-        const r = await api.saveDocument(project.id, head, importDoc.doc as ArchitectureDocument, "import", `Imported ${importDoc.name}`);
+        const r = await api.saveDocument(project.id, currentHead(), importDoc.doc as ArchitectureDocument, "import", `Imported ${importDoc.name}`);
         const fresh = await api.getProject(project.id);
         adoptServerDocument(fresh.document, r.head_revision);
       });

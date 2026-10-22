@@ -114,7 +114,7 @@ Source: ArchitectFlow design revision 4. Mode: backend_api. Labels: [CONFIRMED] 
   Page designer with typed layout trees, drag-and-drop, breakpoint previews that apply the theme's
   breakpoint rules, page-state previews, prototype mode that distinguishes implemented from
   visual-only interactions, UI→API/entity bindings, UI journeys.
-- Deterministic validation (81 rule ids: structural integrity checks plus recommendations): broken references, client→datastore, public internal
+- Deterministic validation (94 rule ids: structural integrity checks plus recommendations): broken references, client→datastore, public internal
   components, missing auth, plaintext/unencrypted boundaries, secrets, synchronous cycles, shared
   databases, SPOF under availability requirements, unbounded queues/retries, monitoring/backup,
   constraint contradictions, UI references to missing APIs/entities/pages, unmapped form fields,
