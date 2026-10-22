@@ -8,6 +8,7 @@ requirement wording that triggered it.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from itertools import pairwise
 
@@ -437,6 +438,57 @@ def operations_coverage(ctx: GraphContext) -> list[Finding]:
     return out
 
 
+def _norm(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def requirement_conflicts(ctx: GraphContext) -> list[Finding]:
+    """Contradictions *between* stated requirements, preferences and constraints."""
+    out: list[Finding] = []
+    doc = ctx.doc
+    reqs = [*doc.requirements.functional, *doc.requirements.nonfunctional]
+    for constraint in doc.constraints:
+        if constraint.kind != "forbids_technology" or not constraint.value.strip():
+            continue
+        banned = _norm(constraint.value)
+        pattern = rf"\b{re.escape(banned)}\b"
+        prefs = [p for p in doc.technology_preferences if re.search(pattern, _norm(p))]
+        hits = [r for r in reqs if re.search(pattern, _norm(r.text))]
+        if prefs or hits:
+            where = [f"technology preference '{p}'" for p in prefs]
+            where += [f"requirement {r.id} '{r.text}'" for r in hits]
+            out.append(
+                make_finding(
+                    "requirement-conflict",
+                    "error",
+                    "recommendation",
+                    "Conflicting requirements",
+                    "A constraint forbids a technology that the requirements or technology "
+                    "preferences ask for; both cannot be satisfied.",
+                    f"constraint {constraint.id} ('{constraint.text}') vs " + "; ".join(where),
+                    "Remove or change one of them, and record the decision.",
+                )
+            )
+    seen: dict[str, str] = {}
+    for r in reqs:
+        key = _norm(r.text)
+        if key and key in seen:
+            out.append(
+                make_finding(
+                    "duplicate-requirement",
+                    "warning",
+                    "recommendation",
+                    "Duplicate requirement",
+                    "The same requirement is listed twice, which makes priorities ambiguous.",
+                    f"{seen[key]} and {r.id}: '{r.text}'",
+                    "Merge them into one requirement.",
+                )
+            )
+        else:
+            seen[key] = r.id
+    return out
+
+
 def constraint_checks(ctx: GraphContext) -> list[Finding]:
     out = []
     for constraint in ctx.doc.constraints:
@@ -522,6 +574,7 @@ ALL_RULES: tuple[Rule, ...] = (
     unbounded_resources,
     operations_coverage,
     constraint_checks,
+    requirement_conflicts,
     unlinked_design,
     ui_references,
     design_tokens,

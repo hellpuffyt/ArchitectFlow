@@ -246,3 +246,43 @@ def test_findings_are_deterministic_and_sorted() -> None:
     sev = [f.severity for f in a]
     order = {"error": 0, "warning": 1, "info": 2}
     assert sev == sorted(sev, key=order.__getitem__)
+
+
+def test_requirement_conflicts_from_saved_data() -> None:
+    d = doc(
+        [],
+        technology_preferences=["PostgreSQL"],
+        requirements={
+            "functional": [
+                {"id": "fr-1", "text": "Store invoices in MongoDB"},
+                {"id": "fr-2", "text": "Export invoices as PDF"},
+                {"id": "fr-3", "text": "Export invoices as PDF."},
+            ]
+        },
+        constraints=[
+            {
+                "id": "c1",
+                "text": "No PostgreSQL licences",
+                "kind": "forbids_technology",
+                "value": "postgresql",
+            },
+            {"id": "c2", "text": "Avoid Mongo", "kind": "forbids_technology", "value": "MongoDB"},
+        ],
+    )
+    found = {
+        f.rule: f
+        for f in run_validation(d)
+        if f.rule in {"requirement-conflict", "duplicate-requirement"}
+    }
+    conflicts = [f for f in run_validation(d) if f.rule == "requirement-conflict"]
+    assert len(conflicts) == 2
+    assert any("technology preference 'PostgreSQL'" in f.evidence for f in conflicts)
+    assert any("requirement fr-1" in f.evidence for f in conflicts)
+    assert "fr-2 and fr-3" in found["duplicate-requirement"].evidence
+    # No false positive on substrings ("Go" must not match "Google").
+    ok = doc(
+        [],
+        technology_preferences=["Google Maps"],
+        constraints=[{"id": "c", "text": "No Go", "kind": "forbids_technology", "value": "go"}],
+    )
+    assert "requirement-conflict" not in rules(ok)

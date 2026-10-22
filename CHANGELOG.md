@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format: [Keep a Changel
   integrity gate and immutable revisions, restore and conflict detection.
 - Graph editor, requirements/journeys/database/API/security workspaces, UI/UX Design Studio
   (theme tokens with live preview, page designer, journeys, prototype mode).
-- Deterministic validation (79 rule ids) with evidence and remediation.
+- Deterministic validation (81 rule ids, incl. conflicting/duplicate requirements) with evidence and remediation.
 - AI change sets with review before apply; example mode; OpenAI-compatible and Anthropic providers.
 - Prompt generator (8 modes × 3 presets) tied to saved revisions with OUTDATED marking.
 - Exports (JSON, bundle, Mermaid, PlantUML, C4, sequence, ERD, data-flow, dependencies,

@@ -114,11 +114,11 @@ Source: ArchitectFlow design revision 4. Mode: backend_api. Labels: [CONFIRMED] 
   Page designer with typed layout trees, drag-and-drop, breakpoint previews that apply the theme's
   breakpoint rules, page-state previews, prototype mode that distinguishes implemented from
   visual-only interactions, UI→API/entity bindings, UI journeys.
-- Deterministic validation (79 rule ids: structural integrity checks plus recommendations): broken references, client→datastore, public internal
+- Deterministic validation (81 rule ids: structural integrity checks plus recommendations): broken references, client→datastore, public internal
   components, missing auth, plaintext/unencrypted boundaries, secrets, synchronous cycles, shared
   databases, SPOF under availability requirements, unbounded queues/retries, monitoring/backup,
   constraint contradictions, UI references to missing APIs/entities/pages, unmapped form fields,
-  missing states/responsive rules, color contrast.
+  missing states/responsive rules, color contrast, conflicting and duplicate requirements.
 - AI providers: labeled example mode (default), OpenAI-compatible Chat Completions, Anthropic
   Messages. Missing key → 503, unreachable → 502, timeout → 504, provider rate limit → 429,
   invalid output → 422; the design is never changed on failure.
@@ -170,9 +170,9 @@ The UI tells users when designs are sent to an external provider.
 
 ```bash
 scripts/dev-db.sh start
-(cd apps/api && uv run pytest)                       # 114 tests, real PostgreSQL
+(cd apps/api && uv run pytest)                       # 115 tests, real PostgreSQL
 (cd apps/web && npm test)                             # 46 Vitest tests
-(cd apps/web && npx playwright test)                  # 19 browser specs + 2 opt-in, real API + PostgreSQL
+(cd apps/web && npx playwright test)                  # 20 browser specs + 2 opt-in, real API + PostgreSQL
 ARCHITECTFLOW_E2E_STOP_DB=1 npx playwright test -g "PostgreSQL down"   # stops/starts the local cluster
 bash scripts/test-dev-db.sh                           # dev cluster from a deep checkout path
 ```
