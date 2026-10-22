@@ -17,6 +17,7 @@ from collections.abc import Callable
 
 from ..schema import NODE_TYPES, ArchitectureDocument, PromptSection, PromptSettings
 from ..validation import run_validation
+from .design_sections import design_section, pages_section
 
 C, A, OPT, U = "[CONFIRMED]", "[ASSUMPTION]", "[OPTIONAL]", "[UNRESOLVED]"
 
@@ -313,11 +314,11 @@ def _deployment(doc: ArchitectureDocument) -> list[str]:
 
 
 def _design(doc: ArchitectureDocument) -> list[str]:
-    return ["## Visual design", f"{U} No UI design saved yet."]
+    return design_section(doc)
 
 
 def _pages(doc: ArchitectureDocument) -> list[str]:
-    return ["## Pages", f"{U} No pages saved yet."]
+    return pages_section(doc)
 
 
 def _testing(doc: ArchitectureDocument) -> list[str]:
@@ -389,7 +390,12 @@ def generate_prompt(
         _PRESET[settings.preset],
     ]
     for section in chosen:
-        lines = _overview(doc, project_name) if section == "overview" else _BUILDERS[section](doc)
+        if section == "overview":
+            lines = _overview(doc, project_name)
+        elif section == "pages" and settings.mode == "page":
+            lines = pages_section(doc, settings.page_id)
+        else:
+            lines = _BUILDERS[section](doc)
         parts.append("\n".join(lines))
         parts.append("")
     parts.append(

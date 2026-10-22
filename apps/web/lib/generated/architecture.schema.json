@@ -181,6 +181,101 @@
       "title": "Assumption",
       "type": "object"
     },
+    "Breakpoints": {
+      "additionalProperties": false,
+      "description": "Widths (px) below which the ``sm``/``md`` responsive rules apply.",
+      "properties": {
+        "md": {
+          "default": 1024,
+          "maximum": 1600,
+          "minimum": 480,
+          "title": "Md",
+          "type": "integer"
+        },
+        "sm": {
+          "default": 640,
+          "maximum": 1200,
+          "minimum": 320,
+          "title": "Sm",
+          "type": "integer"
+        }
+      },
+      "title": "Breakpoints",
+      "type": "object"
+    },
+    "ComponentStyles": {
+      "additionalProperties": false,
+      "properties": {
+        "button": {
+          "default": "solid",
+          "enum": [
+            "solid",
+            "outline",
+            "soft"
+          ],
+          "title": "Button",
+          "type": "string"
+        },
+        "button_radius": {
+          "default": "md",
+          "enum": [
+            "sm",
+            "md",
+            "lg",
+            "full"
+          ],
+          "title": "Button Radius",
+          "type": "string"
+        },
+        "card": {
+          "default": "outlined",
+          "enum": [
+            "elevated",
+            "outlined",
+            "flat"
+          ],
+          "title": "Card",
+          "type": "string"
+        },
+        "icon_stroke": {
+          "default": 1.75,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Icon Stroke",
+          "type": "number"
+        },
+        "input": {
+          "default": "outline",
+          "enum": [
+            "outline",
+            "filled",
+            "underline"
+          ],
+          "title": "Input",
+          "type": "string"
+        },
+        "navigation": {
+          "default": "sidebar",
+          "enum": [
+            "sidebar",
+            "topbar"
+          ],
+          "title": "Navigation",
+          "type": "string"
+        },
+        "table_density": {
+          "default": "comfortable",
+          "enum": [
+            "compact",
+            "comfortable"
+          ],
+          "title": "Table Density",
+          "type": "string"
+        }
+      },
+      "title": "ComponentStyles",
+      "type": "object"
+    },
     "Constraint": {
       "additionalProperties": false,
       "description": "An explicit, machine-checkable project constraint.",
@@ -277,6 +372,50 @@
       "title": "Decision",
       "type": "object"
     },
+    "DesignDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "active_theme_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Active Theme Id"
+        },
+        "journeys": {
+          "items": {
+            "$ref": "#/$defs/UiJourney"
+          },
+          "maxItems": 50,
+          "title": "Journeys",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/Page"
+          },
+          "maxItems": 100,
+          "title": "Pages",
+          "type": "array"
+        },
+        "themes": {
+          "items": {
+            "$ref": "#/$defs/Theme"
+          },
+          "maxItems": 20,
+          "title": "Themes",
+          "type": "array"
+        }
+      },
+      "title": "DesignDocument",
+      "type": "object"
+    },
     "Edge": {
       "additionalProperties": false,
       "properties": {
@@ -370,6 +509,31 @@
         "target"
       ],
       "title": "Edge",
+      "type": "object"
+    },
+    "Elevation": {
+      "additionalProperties": false,
+      "properties": {
+        "border_width": {
+          "default": 1,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Border Width",
+          "type": "integer"
+        },
+        "shadow": {
+          "default": "subtle",
+          "enum": [
+            "none",
+            "subtle",
+            "medium",
+            "strong"
+          ],
+          "title": "Shadow",
+          "type": "string"
+        }
+      },
+      "title": "Elevation",
       "type": "object"
     },
     "Endpoint": {
@@ -633,6 +797,40 @@
       "title": "EntityField",
       "type": "object"
     },
+    "FieldBinding": {
+      "additionalProperties": false,
+      "description": "Where an input's value goes: an entity column (and the request field named ``name``).",
+      "properties": {
+        "entity_field": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Field"
+        },
+        "entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Id"
+        }
+      },
+      "title": "FieldBinding",
+      "type": "object"
+    },
     "ForeignKey": {
       "additionalProperties": false,
       "properties": {
@@ -733,6 +931,276 @@
         "fields"
       ],
       "title": "Index",
+      "type": "object"
+    },
+    "Interaction": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "default": "none",
+          "enum": [
+            "navigate",
+            "call_api",
+            "open_modal",
+            "close_modal",
+            "none"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "endpoint_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpoint Id"
+        },
+        "implemented": {
+          "default": false,
+          "title": "Implemented",
+          "type": "boolean"
+        },
+        "target_page_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Page Id"
+        },
+        "trigger": {
+          "default": "click",
+          "enum": [
+            "click",
+            "submit"
+          ],
+          "title": "Trigger",
+          "type": "string"
+        }
+      },
+      "title": "Interaction",
+      "type": "object"
+    },
+    "JourneyStep": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Action",
+          "type": "string"
+        },
+        "page_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Page Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_id"
+      ],
+      "title": "JourneyStep",
+      "type": "object"
+    },
+    "LayoutNode": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FieldBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "children": {
+          "items": {
+            "$ref": "#/$defs/LayoutNode"
+          },
+          "maxItems": 60,
+          "title": "Children",
+          "type": "array"
+        },
+        "endpoint_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpoint Id"
+        },
+        "entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Id"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "interaction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Interaction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "kind": {
+          "enum": [
+            "container",
+            "stack",
+            "grid",
+            "nav",
+            "tabs",
+            "form",
+            "card",
+            "modal",
+            "list",
+            "heading",
+            "text",
+            "button",
+            "input",
+            "select",
+            "checkbox",
+            "table",
+            "image",
+            "icon",
+            "chart",
+            "stat",
+            "alert",
+            "badge",
+            "divider",
+            "empty_state"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "props": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "maxProperties": 30,
+          "propertyNames": {
+            "maxLength": 200
+          },
+          "title": "Props",
+          "type": "object"
+        },
+        "responsive": {
+          "$ref": "#/$defs/Responsive"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "LayoutNode",
+      "type": "object"
+    },
+    "LayoutTokens": {
+      "additionalProperties": false,
+      "properties": {
+        "breakpoints": {
+          "$ref": "#/$defs/Breakpoints"
+        },
+        "grid_columns": {
+          "default": 12,
+          "maximum": 24,
+          "minimum": 1,
+          "title": "Grid Columns",
+          "type": "integer"
+        },
+        "gutter": {
+          "default": 16,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Gutter",
+          "type": "integer"
+        },
+        "max_width": {
+          "default": 1200,
+          "maximum": 2400,
+          "minimum": 480,
+          "title": "Max Width",
+          "type": "integer"
+        }
+      },
+      "title": "LayoutTokens",
+      "type": "object"
+    },
+    "Motion": {
+      "additionalProperties": false,
+      "properties": {
+        "duration_ms": {
+          "default": 160,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "intensity": {
+          "default": "subtle",
+          "enum": [
+            "none",
+            "subtle",
+            "standard",
+            "expressive"
+          ],
+          "title": "Intensity",
+          "type": "string"
+        },
+        "respect_reduced_motion": {
+          "default": true,
+          "title": "Respect Reduced Motion",
+          "type": "boolean"
+        }
+      },
+      "title": "Motion",
       "type": "object"
     },
     "Node": {
@@ -850,6 +1318,192 @@
       "title": "Node",
       "type": "object"
     },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "layout": {
+          "$ref": "#/$defs/LayoutNode"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "requires_auth": {
+          "default": true,
+          "title": "Requires Auth",
+          "type": "boolean"
+        },
+        "roles": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Roles",
+          "type": "array"
+        },
+        "route": {
+          "maxLength": 200,
+          "pattern": "^/[A-Za-z0-9_\\-/{}:.\\[\\]]*$",
+          "title": "Route",
+          "type": "string"
+        },
+        "states": {
+          "items": {
+            "$ref": "#/$defs/PageState"
+          },
+          "maxItems": 6,
+          "title": "States",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "route",
+        "layout"
+      ],
+      "title": "Page",
+      "type": "object"
+    },
+    "PageState": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "loading",
+            "empty",
+            "success",
+            "error",
+            "validation_error",
+            "permission_denied"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "PageState",
+      "type": "object"
+    },
+    "Palette": {
+      "additionalProperties": false,
+      "properties": {
+        "accent": {
+          "default": "#14b8a6",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Accent",
+          "type": "string"
+        },
+        "background": {
+          "default": "#ffffff",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Background",
+          "type": "string"
+        },
+        "border": {
+          "default": "#d9dde5",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Border",
+          "type": "string"
+        },
+        "danger": {
+          "default": "#b91c1c",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Danger",
+          "type": "string"
+        },
+        "info": {
+          "default": "#1d4ed8",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Info",
+          "type": "string"
+        },
+        "muted_text": {
+          "default": "#4b5563",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Muted Text",
+          "type": "string"
+        },
+        "on_primary": {
+          "default": "#ffffff",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "On Primary",
+          "type": "string"
+        },
+        "primary": {
+          "default": "#3f5bf0",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Primary",
+          "type": "string"
+        },
+        "secondary": {
+          "default": "#64748b",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Secondary",
+          "type": "string"
+        },
+        "success": {
+          "default": "#15803d",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Success",
+          "type": "string"
+        },
+        "surface": {
+          "default": "#f6f7f9",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Surface",
+          "type": "string"
+        },
+        "text": {
+          "default": "#111827",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Text",
+          "type": "string"
+        },
+        "warning": {
+          "default": "#b45309",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Warning",
+          "type": "string"
+        }
+      },
+      "title": "Palette",
+      "type": "object"
+    },
     "Position": {
       "additionalProperties": false,
       "properties": {
@@ -933,6 +1587,34 @@
         }
       },
       "title": "PromptSettings",
+      "type": "object"
+    },
+    "Radii": {
+      "additionalProperties": false,
+      "properties": {
+        "lg": {
+          "default": 14,
+          "maximum": 48,
+          "minimum": 0,
+          "title": "Lg",
+          "type": "integer"
+        },
+        "md": {
+          "default": 8,
+          "maximum": 40,
+          "minimum": 0,
+          "title": "Md",
+          "type": "integer"
+        },
+        "sm": {
+          "default": 4,
+          "maximum": 40,
+          "minimum": 0,
+          "title": "Sm",
+          "type": "integer"
+        }
+      },
+      "title": "Radii",
       "type": "object"
     },
     "Requirement": {
@@ -1026,6 +1708,84 @@
       "title": "Requirements",
       "type": "object"
     },
+    "Responsive": {
+      "additionalProperties": false,
+      "properties": {
+        "md": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResponsiveRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResponsiveRule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Responsive",
+      "type": "object"
+    },
+    "ResponsiveRule": {
+      "additionalProperties": false,
+      "properties": {
+        "columns": {
+          "anyOf": [
+            {
+              "maximum": 12,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Columns"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "row",
+                "column"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "hidden": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hidden"
+        }
+      },
+      "title": "ResponsiveRule",
+      "type": "object"
+    },
     "Size": {
       "additionalProperties": false,
       "properties": {
@@ -1045,6 +1805,196 @@
         }
       },
       "title": "Size",
+      "type": "object"
+    },
+    "Spacing": {
+      "additionalProperties": false,
+      "properties": {
+        "density": {
+          "default": "comfortable",
+          "enum": [
+            "compact",
+            "comfortable",
+            "spacious"
+          ],
+          "title": "Density",
+          "type": "string"
+        },
+        "unit": {
+          "default": 4,
+          "maximum": 12,
+          "minimum": 2,
+          "title": "Unit",
+          "type": "integer"
+        }
+      },
+      "title": "Spacing",
+      "type": "object"
+    },
+    "Theme": {
+      "additionalProperties": false,
+      "properties": {
+        "appearance": {
+          "default": "light",
+          "enum": [
+            "light",
+            "dark",
+            "system"
+          ],
+          "title": "Appearance",
+          "type": "string"
+        },
+        "components": {
+          "$ref": "#/$defs/ComponentStyles"
+        },
+        "dark": {
+          "$ref": "#/$defs/Palette"
+        },
+        "elevation": {
+          "$ref": "#/$defs/Elevation"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "layout": {
+          "$ref": "#/$defs/LayoutTokens"
+        },
+        "light": {
+          "$ref": "#/$defs/Palette"
+        },
+        "motion": {
+          "$ref": "#/$defs/Motion"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "preset": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Preset",
+          "type": "string"
+        },
+        "radii": {
+          "$ref": "#/$defs/Radii"
+        },
+        "spacing": {
+          "$ref": "#/$defs/Spacing"
+        },
+        "typography": {
+          "$ref": "#/$defs/Typography"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Theme",
+      "type": "object"
+    },
+    "Typography": {
+      "additionalProperties": false,
+      "properties": {
+        "base_size": {
+          "default": 15,
+          "maximum": 22,
+          "minimum": 12,
+          "title": "Base Size",
+          "type": "integer"
+        },
+        "body_font": {
+          "default": "Inter, system-ui, sans-serif",
+          "pattern": "^[A-Za-z0-9 ,'\\\"-]{1,120}$",
+          "title": "Body Font",
+          "type": "string"
+        },
+        "body_weight": {
+          "default": 400,
+          "maximum": 700,
+          "minimum": 300,
+          "title": "Body Weight",
+          "type": "integer"
+        },
+        "heading_font": {
+          "default": "Inter, system-ui, sans-serif",
+          "pattern": "^[A-Za-z0-9 ,'\\\"-]{1,120}$",
+          "title": "Heading Font",
+          "type": "string"
+        },
+        "heading_weight": {
+          "default": 650,
+          "maximum": 900,
+          "minimum": 300,
+          "title": "Heading Weight",
+          "type": "integer"
+        },
+        "line_height": {
+          "default": 1.55,
+          "maximum": 2.2,
+          "minimum": 1.1,
+          "title": "Line Height",
+          "type": "number"
+        },
+        "mono_font": {
+          "default": "ui-monospace, Menlo, monospace",
+          "pattern": "^[A-Za-z0-9 ,'\\\"-]{1,120}$",
+          "title": "Mono Font",
+          "type": "string"
+        },
+        "scale_ratio": {
+          "default": 1.25,
+          "maximum": 1.62,
+          "minimum": 1.05,
+          "title": "Scale Ratio",
+          "type": "number"
+        }
+      },
+      "title": "Typography",
+      "type": "object"
+    },
+    "UiJourney": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "role_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role Id"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/JourneyStep"
+          },
+          "maxItems": 30,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "UiJourney",
       "type": "object"
     },
     "Viewport": {
@@ -1161,6 +2111,9 @@
       "maxItems": 100,
       "title": "Decisions",
       "type": "array"
+    },
+    "design": {
+      "$ref": "#/$defs/DesignDocument"
     },
     "edges": {
       "items": {

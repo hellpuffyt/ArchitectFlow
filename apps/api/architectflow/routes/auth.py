@@ -33,8 +33,15 @@ class LoginCredentials(BaseModel):
 
 def ai_status() -> dict[str, str]:
     s = get_settings()
-    if s.ai_provider == "example" or s.ai_api_key is None:
+    if s.ai_provider == "example":
         return {"provider": "example", "mode": "example", "notice": EXAMPLE_MODE_NOTICE}
+    if s.ai_api_key is None or not s.ai_api_key.get_secret_value():
+        return {
+            "provider": s.ai_provider,
+            "mode": "misconfigured",
+            "notice": f"AI provider '{s.ai_provider}' is configured without an API key; "
+            "AI features are unavailable until an administrator sets one.",
+        }
     return {
         "provider": s.ai_provider,
         "mode": "live",

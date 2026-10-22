@@ -32,11 +32,21 @@ from .architecture import (
     Viewport,
     Workflow,
 )
+from .design import (
+    CONTAINER_KINDS,
+    DesignDocument,
+    LayoutNode,
+    Page,
+    Theme,
+    UiJourney,
+    walk,
+)
 from .migrate import SchemaMigrationError, migrate_document
 from .registry import NODE_TYPES, NodeTypeSpec, node_type
 
 __all__ = [
     "ALL_PROMPT_SECTIONS",
+    "CONTAINER_KINDS",
     "CURRENT_SCHEMA_VERSION",
     "NODE_TYPES",
     "AcceptanceCriterion",
@@ -49,6 +59,7 @@ __all__ = [
     "Constraint",
     "DatabaseDesign",
     "Decision",
+    "DesignDocument",
     "Edge",
     "Endpoint",
     "Entity",
@@ -56,8 +67,10 @@ __all__ = [
     "ForeignKey",
     "Group",
     "Index",
+    "LayoutNode",
     "Node",
     "NodeTypeSpec",
+    "Page",
     "Position",
     "PromptMode",
     "PromptPreset",
@@ -67,8 +80,11 @@ __all__ = [
     "Requirements",
     "SchemaMigrationError",
     "Size",
+    "Theme",
+    "UiJourney",
     "Viewport",
     "Workflow",
     "migrate_document",
     "node_type",
+    "walk",
 ]

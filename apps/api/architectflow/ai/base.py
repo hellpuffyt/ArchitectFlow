@@ -30,6 +30,18 @@ class AIProvider(Protocol):
 
     async def propose_edit(self, request: str, current: ArchitectureDocument) -> ProviderResult: ...
 
+    async def propose_design(
+        self, request: str, current: ArchitectureDocument
+    ) -> ProviderResult: ...
+
 
 class ProviderError(RuntimeError):
-    """The provider failed or returned something unusable."""
+    """The provider failed or returned something unusable.
+
+    ``status`` is the HTTP status the API should answer with: 502 (bad/unreachable
+    provider), 504 (timeout) or 429 (provider rate limit).
+    """
+
+    def __init__(self, message: str, status: int = 502) -> None:
+        super().__init__(message)
+        self.status = status

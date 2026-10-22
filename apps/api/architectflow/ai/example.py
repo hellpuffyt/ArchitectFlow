@@ -667,6 +667,11 @@ class ExampleProvider:
             explanation=f"{EXAMPLE_MODE_NOTICE}. Interpreted: “{req}”.", operations=b.ops
         )
 
+    async def propose_design(self, request: str, current: ArchitectureDocument) -> ProviderResult:
+        from .example_design import design_request
+
+        return design_request(request, current)
+
     @staticmethod
     def _classify(thing: str) -> tuple[str | None, str, str]:
         table = [

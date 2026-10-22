@@ -13,6 +13,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from .design import DesignDocument
+
 CURRENT_SCHEMA_VERSION: Literal[1] = 1
 
 MAX_NODES = 500
@@ -322,4 +324,5 @@ class ArchitectureDocument(_Model):
     viewport: Viewport = Field(default_factory=Viewport)
     database: DatabaseDesign = Field(default_factory=DatabaseDesign)
     api: ApiDesign = Field(default_factory=ApiDesign)
+    design: DesignDocument = Field(default_factory=DesignDocument)
     prompt_settings: PromptSettings = Field(default_factory=PromptSettings)

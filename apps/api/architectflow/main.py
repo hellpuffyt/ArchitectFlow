@@ -10,7 +10,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from . import __version__
 from .config import get_settings
-from .routes import ai, auth, projects, prompts
+from .routes import account, ai, auth, design, exports, projects, prompts, share
 
 
 def create_app() -> FastAPI:
@@ -58,7 +58,7 @@ def create_app() -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok", "version": __version__}
 
-    for module in (auth, projects, ai, prompts):
+    for module in (auth, projects, ai, prompts, design, exports, share, account):
         app.include_router(module.router)
     return app
 

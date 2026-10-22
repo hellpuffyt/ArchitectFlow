@@ -10,7 +10,15 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from ..schema import ArchitectureDocument, SchemaMigrationError, migrate_document, node_type
+from ..schema import (
+    CONTAINER_KINDS,
+    ArchitectureDocument,
+    SchemaMigrationError,
+    migrate_document,
+    node_type,
+    walk,
+)
+from ..schema.design import MAX_LAYOUT_DEPTH
 from .findings import Finding, make_finding
 
 
@@ -187,6 +195,107 @@ def check_integrity(doc: ArchitectureDocument) -> list[Finding]:
                 )
             )
     findings.extend(_check_database_and_api(doc, known, actor_ids))
+    findings.extend(_check_design(doc))
+    return findings
+
+
+def _check_design(doc: ArchitectureDocument) -> list[Finding]:
+    """Structural design defects. Links to APIs/entities/pages are soft (see rules)."""
+    findings: list[Finding] = []
+    design = doc.design
+
+    def err(rule: str, title: str, evidence: str, fix: str) -> None:
+        findings.append(
+            make_finding(
+                rule,
+                "error",
+                "schema_error",
+                title,
+                "The design document is structurally invalid.",
+                evidence,
+                fix,
+            )
+        )
+
+    theme_ids = [t.id for t in design.themes]
+    for dup, count in Counter(theme_ids).items():
+        if count > 1:
+            err("duplicate-theme-id", "Duplicate theme id", f"'{dup}' x{count}", "Rename one.")
+    if design.active_theme_id is not None and design.active_theme_id not in theme_ids:
+        err(
+            "missing-active-theme",
+            "Active theme does not exist",
+            f"active_theme_id '{design.active_theme_id}'",
+            "Pick an existing theme.",
+        )
+    page_ids = [p.id for p in design.pages]
+    for dup, count in Counter(page_ids).items():
+        if count > 1:
+            err("duplicate-page-id", "Duplicate page id", f"'{dup}' x{count}", "Rename one.")
+    pages = {p.id: p for p in design.pages}
+    for page in design.pages:
+        if page.parent_id is not None:
+            seen = {page.id}
+            parent: str | None = page.parent_id
+            while parent is not None:
+                if parent not in pages:
+                    err(
+                        "missing-parent-page",
+                        "Parent page does not exist",
+                        f"page '{page.id}' parent '{parent}'",
+                        "Pick an existing parent page.",
+                    )
+                    break
+                if parent in seen:
+                    err(
+                        "page-hierarchy-cycle",
+                        "Page hierarchy has a cycle",
+                        f"page '{page.id}'",
+                        "Break the parent chain.",
+                    )
+                    break
+                seen.add(parent)
+                parent = pages[parent].parent_id
+    layout_ids: Counter[str] = Counter()
+    for page in design.pages:
+        for node, depth in walk(page.layout):
+            layout_ids[node.id] += 1
+            if depth > MAX_LAYOUT_DEPTH:
+                err(
+                    "layout-too-deep",
+                    "Layout nesting too deep",
+                    f"page '{page.id}' node '{node.id}' at depth {depth}",
+                    f"Keep nesting at or below {MAX_LAYOUT_DEPTH} levels.",
+                )
+            if node.children and node.kind not in CONTAINER_KINDS:
+                err(
+                    "children-on-leaf",
+                    "Component cannot contain children",
+                    f"page '{page.id}' node '{node.id}' ({node.kind})",
+                    "Move the children into a container, stack, grid, form or card.",
+                )
+    for dup, count in layout_ids.items():
+        if count > 1:
+            err(
+                "duplicate-layout-id",
+                "Duplicate layout element id",
+                f"'{dup}' x{count}",
+                "Layout element ids must be unique across all pages.",
+            )
+    for journey in design.journeys:
+        for step in journey.steps:
+            if step.page_id not in pages:
+                findings.append(
+                    make_finding(
+                        "journey-missing-page",
+                        "error",
+                        "schema_error",
+                        "Journey step references a missing page",
+                        "Journey steps must reference existing pages.",
+                        f"journey '{journey.id}' → '{step.page_id}'",
+                        "Remove the step or restore the page.",
+                    )
+                )
     return findings
 
 

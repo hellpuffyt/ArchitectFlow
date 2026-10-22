@@ -19,8 +19,9 @@ def main(out_dir: str) -> None:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     schema = ArchitectureDocument.model_json_schema()
-    (out / "architecture.schema.json").write_text(json.dumps(schema, indent=2, sort_keys=True)
-                                                  + "\n")
+    (out / "architecture.schema.json").write_text(
+        json.dumps(schema, indent=2, sort_keys=True) + "\n"
+    )
     registry = [dataclasses.asdict(spec) for spec in NODE_TYPES.values()]
     (out / "node-registry.json").write_text(json.dumps(registry, indent=2) + "\n")
 

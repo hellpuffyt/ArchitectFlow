@@ -20,6 +20,7 @@ from ..ai import (
     summarize,
 )
 from ..ai.base import AIProvider
+from ..ai.example_design import generate_pages
 from ..config import get_settings
 from ..deps import DB, CurrentPrincipal, OwnedProject
 from ..models import ChangeSet
@@ -33,9 +34,21 @@ _ai_limiter = RateLimiter(get_settings().ai_requests_per_minute)
 
 
 def get_provider() -> AIProvider:
+    """Example provider by default; a configured provider without a key is an error."""
     s = get_settings()
-    if s.ai_provider == "example" or s.ai_api_key is None:
+    if s.ai_provider == "example":
         return ExampleProvider()
+    if s.ai_api_key is None or not s.ai_api_key.get_secret_value():
+        raise ProviderError(
+            f"AI provider '{s.ai_provider}' is configured but ARCHITECTFLOW_AI_API_KEY is not "
+            "set. Set the key, or set ARCHITECTFLOW_AI_PROVIDER=example.",
+            status=503,
+        )
+    if s.ai_provider == "openai" and not s.ai_model:
+        raise ProviderError(
+            "ARCHITECTFLOW_AI_MODEL must name the model for the OpenAI-compatible provider.",
+            status=503,
+        )
     key = s.ai_api_key.get_secret_value()
     if s.ai_provider == "anthropic":
         return AnthropicProvider(
@@ -46,7 +59,7 @@ def get_provider() -> AIProvider:
         )
     return OpenAICompatibleProvider(
         api_key=key,
-        model=s.ai_model or "gpt-4o-mini",
+        model=s.ai_model,
         base_url=s.ai_base_url or "https://api.openai.com/v1",
         timeout=s.ai_timeout_seconds,
     )
@@ -59,6 +72,15 @@ class GenerateBody(BaseModel):
 
 class EditBody(BaseModel):
     request: Annotated[str, Field(min_length=3, max_length=2000)]
+    base_revision: int
+
+
+class DesignBody(BaseModel):
+    request: Annotated[str, Field(min_length=3, max_length=2000)]
+    base_revision: int
+
+
+class PagesBody(BaseModel):
     base_revision: int
 
 
@@ -86,7 +108,7 @@ def changeset_out(cs: ChangeSet) -> dict[str, Any]:
 
 
 async def _propose(
-    kind: Literal["generate", "edit"],
+    kind: Literal["generate", "edit", "design", "pages"],
     text: str,
     base_revision: int,
     project_id: uuid.UUID,
@@ -110,20 +132,32 @@ async def _propose(
         )
     _, doc = head_document(db, project)
     db.rollback()  # release the row lock while the provider runs
-    provider = get_provider()
+    try:
+        provider = get_provider()
+    except ProviderError as exc:
+        raise HTTPException(exc.status, {"message": str(exc), "provider": "unavailable"}) from exc
     try:
         if kind == "generate":
             result = await provider.propose_architecture(text, doc)
-        else:
+        elif kind == "edit":
             result = await provider.propose_edit(text, doc)
+        elif kind == "design":
+            result = await provider.propose_design(text, doc)
+        else:
+            # Page generation is a deterministic derivation from the saved design in every
+            # mode; it never calls an external provider.
+            result = generate_pages(doc)
     except ProviderError as exc:
         raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY,
+            exc.status,
             {
                 "message": f"The AI provider failed: {exc}. Your design was not changed.",
                 "provider": provider.name,
             },
         ) from exc
+    source_name, source_mode = (
+        ("page-generator", "example") if kind == "pages" else (provider.name, provider.mode)
+    )
     try:
         ops = parse_operations(result.operations)
         proposed = apply_operations(doc, ops)
@@ -143,8 +177,8 @@ async def _propose(
         base_revision=base_revision,
         kind=kind,
         request=text,
-        provider=provider.name,
-        mode=provider.mode,
+        provider=source_name,
+        mode=source_mode,
         explanation=result.explanation,
         questions=result.questions,
         operations=[o.model_dump(mode="json") for o in ops],
@@ -157,8 +191,8 @@ async def _propose(
         f"ai.{kind}",
         user_id=principal.user.id,
         project_id=project_id,
-        provider=provider.name,
-        mode=provider.mode,
+        provider=source_name,
+        mode=source_mode,
         operations=len(ops),
     )
     db.commit()
@@ -186,6 +220,22 @@ def _load(db: DB, project_id: uuid.UUID, cs_id: uuid.UUID) -> ChangeSet:
     if cs is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Change set not found.")
     return cs
+
+
+@router.post("/ai/design", status_code=status.HTTP_201_CREATED)
+async def design(
+    project_id: uuid.UUID, body: DesignBody, principal: CurrentPrincipal, db: DB
+) -> dict[str, Any]:
+    return await _propose("design", body.request, body.base_revision, project_id, principal, db)
+
+
+@router.post("/ai/pages", status_code=status.HTTP_201_CREATED)
+async def pages(
+    project_id: uuid.UUID, body: PagesBody, principal: CurrentPrincipal, db: DB
+) -> dict[str, Any]:
+    return await _propose(
+        "pages", "Generate pages from requirements", body.base_revision, project_id, principal, db
+    )
 
 
 @router.get("/changesets")

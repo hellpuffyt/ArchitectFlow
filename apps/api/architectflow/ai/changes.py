@@ -23,7 +23,10 @@ from ..schema import (
     Endpoint,
     Entity,
     Node,
+    Page,
     Requirement,
+    Theme,
+    UiJourney,
     Workflow,
 )
 from ..schema.architecture import LongText, PropValue, ShortText
@@ -172,6 +175,45 @@ class ClearSection(_Op):
     section: ClearableSection
 
 
+class PutTheme(_Op):
+    """Add a theme, or replace the one with the same id."""
+
+    op: Literal["put_theme"]
+    theme: Theme
+
+
+class RemoveTheme(_Op):
+    op: Literal["remove_theme"]
+    id: str
+
+
+class SetActiveTheme(_Op):
+    op: Literal["set_active_theme"]
+    id: str | None
+
+
+class PutPage(_Op):
+    """Add a page, or replace the one with the same id (including its layout tree)."""
+
+    op: Literal["put_page"]
+    page: Page
+
+
+class RemovePage(_Op):
+    op: Literal["remove_page"]
+    id: str
+
+
+class PutUiJourney(_Op):
+    op: Literal["put_ui_journey"]
+    journey: UiJourney
+
+
+class RemoveUiJourney(_Op):
+    op: Literal["remove_ui_journey"]
+    id: str
+
+
 class PutEndpoint(_Op):
     """Add an endpoint, or replace the one with the same id."""
 
@@ -204,7 +246,14 @@ Operation = Annotated[
     | RemoveEntity
     | PutEndpoint
     | RemoveEndpoint
-    | ClearSection,
+    | ClearSection
+    | PutTheme
+    | RemoveTheme
+    | SetActiveTheme
+    | PutPage
+    | RemovePage
+    | PutUiJourney
+    | RemoveUiJourney,
     Field(discriminator="op"),
 ]
 _OPS = TypeAdapter(list[Operation])
@@ -242,6 +291,14 @@ def _index(items: list[Any], item_id: str, what: str, i: int) -> int:
         if item.id == item_id:
             return pos
     raise ChangeSetInvalid([{"path": f"operations.{i}", "message": f"unknown {what} '{item_id}'"}])
+
+
+def _put(items: list[Any], item: Any) -> None:
+    pos = next((k for k, x in enumerate(items) if x.id == item.id), None)
+    if pos is None:
+        items.append(item)
+    else:
+        items[pos] = item
 
 
 def apply_operations(doc: ArchitectureDocument, ops: list[Operation]) -> ArchitectureDocument:
@@ -348,6 +405,31 @@ def apply_operations(doc: ArchitectureDocument, ops: list[Operation]) -> Archite
                     eps[found] = endpoint
             case RemoveEndpoint(id=ep_id):
                 del new.api.endpoints[_index(new.api.endpoints, ep_id, "endpoint", i)]
+            case PutTheme(theme=theme):
+                _put(new.design.themes, theme)
+            case RemoveTheme(id=tid):
+                del new.design.themes[_index(new.design.themes, tid, "theme", i)]
+                if new.design.active_theme_id == tid:
+                    new.design.active_theme_id = (
+                        new.design.themes[0].id if new.design.themes else None
+                    )
+            case SetActiveTheme(id=tid):
+                if tid is not None:
+                    _index(new.design.themes, tid, "theme", i)
+                new.design.active_theme_id = tid
+            case PutPage(page=page):
+                _put(new.design.pages, page)
+            case RemovePage(id=pid):
+                del new.design.pages[_index(new.design.pages, pid, "page", i)]
+                for other in new.design.pages:
+                    if other.parent_id == pid:
+                        other.parent_id = None
+                for journey in new.design.journeys:
+                    journey.steps = [st for st in journey.steps if st.page_id != pid]
+            case PutUiJourney(journey=journey):
+                _put(new.design.journeys, journey)
+            case RemoveUiJourney(id=jid):
+                del new.design.journeys[_index(new.design.journeys, jid, "journey", i)]
             case ClearSection(section=section):
                 fresh = ArchitectureDocument()
                 setattr(new, section, getattr(fresh, section))
@@ -464,6 +546,30 @@ def summarize(doc: ArchitectureDocument, ops: list[Operation]) -> ChangeSummary:
             case ClearSection(section=section):
                 s.other += 1
                 s.lines.append(f"- clear all {section.replace('_', ' ')}")
+            case PutTheme(theme=theme):
+                s.other += 1
+                s.lines.extend(_theme_diff(doc, theme))
+            case RemoveTheme(id=tid):
+                s.other += 1
+                s.lines.append(f"- theme {tid}")
+            case SetActiveTheme(id=tid):
+                s.other += 1
+                s.lines.append(f"~ active theme → {tid}")
+            case PutPage(page=page):
+                s.other += 1
+                prior_page = next((p for p in doc.design.pages if p.id == page.id), None)
+                verb = "~ page" if prior_page else "+ page"
+                count = _count_layout(page.layout)
+                s.lines.append(f"{verb} {page.name} ({page.route}), {count} layout elements")
+            case RemovePage(id=pid):
+                s.other += 1
+                s.lines.append(f"- page {pid} (journey steps to it are removed)")
+            case PutUiJourney(journey=journey):
+                s.other += 1
+                s.lines.append(f"+ UI journey {journey.name} ({len(journey.steps)} steps)")
+            case RemoveUiJourney(id=jid):
+                s.other += 1
+                s.lines.append(f"- UI journey {jid}")
     existing = len(doc.nodes)
     s.large = (
         s.removed_nodes >= LARGE_CHANGE_MIN_REMOVALS
@@ -471,3 +577,30 @@ def summarize(doc: ArchitectureDocument, ops: list[Operation]) -> ChangeSummary:
         and s.removed_nodes / existing >= LARGE_CHANGE_FRACTION
     )
     return s
+
+
+def _count_layout(node: Any) -> int:
+    return 1 + sum(_count_layout(c) for c in node.children)
+
+
+def _flatten(prefix: str, value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        out: dict[str, Any] = {}
+        for k, v in value.items():
+            out.update(_flatten(f"{prefix}.{k}" if prefix else k, v))
+        return out
+    return {prefix: value}
+
+
+def _theme_diff(doc: ArchitectureDocument, theme: Theme) -> list[str]:
+    old = next((t for t in doc.design.themes if t.id == theme.id), None)
+    if old is None:
+        return [f"+ theme {theme.name} (preset {theme.preset or 'custom'})"]
+    before = _flatten("", old.model_dump())
+    after = _flatten("", theme.model_dump())
+    changed = [k for k in after if before.get(k) != after[k]]
+    lines = [f"~ theme {theme.name}: {len(changed)} token(s) changed"]
+    lines += [f"  ~ {k}: {before.get(k)} → {after[k]}" for k in changed[:25]]
+    if len(changed) > 25:
+        lines.append(f"  … {len(changed) - 25} more")
+    return lines

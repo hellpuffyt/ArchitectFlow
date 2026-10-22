@@ -13,6 +13,7 @@ from itertools import pairwise
 
 from .context import GraphContext
 from .findings import Finding, make_finding
+from .ui_rules import accessibility_requirements, design_tokens, ui_references
 
 Rule = Callable[[GraphContext], list[Finding]]
 
@@ -522,4 +523,7 @@ ALL_RULES: tuple[Rule, ...] = (
     operations_coverage,
     constraint_checks,
     unlinked_design,
+    ui_references,
+    design_tokens,
+    accessibility_requirements,
 )
