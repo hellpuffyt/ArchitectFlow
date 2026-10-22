@@ -73,7 +73,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
 export interface Me {
   user: { id: string; email: string };
   csrf_token: string;
-  ai: { provider: string; mode: "example" | "live"; notice: string };
+  ai: { provider: string; mode: "example" | "live" | "misconfigured"; notice: string };
 }
 export interface ProjectSummary {
   id: string;
@@ -127,6 +127,9 @@ export interface PromptResult {
   mode?: string;
 }
 
+export interface ExportFormatInfo { key: string; label: string; extension: string; round_trip: boolean }
+export interface ShareInfo { id: string; created_at: string; expires_at: string; state: "active" | "expired" | "revoked"; token?: string; path?: string }
+
 const enc = encodeURIComponent;
 export const api = {
   me: () => request<Me>("GET", "/api/auth/me"),
@@ -175,4 +178,21 @@ export const api = {
   createPrompt: (id: string, settings: PromptSettings) =>
     request<PromptResult>("POST", `/api/projects/${enc(id)}/prompts`, settings),
   prompts: (id: string) => request<PromptResult[]>("GET", `/api/projects/${enc(id)}/prompts`),
+  presets: () => request<import("./design-types").Theme[]>("GET", "/api/design/presets"),
+  designProposal: (id: string, req: string, base_revision: number) =>
+    request<ChangeSet>("POST", `/api/projects/${enc(id)}/ai/design`, { request: req, base_revision }),
+  pagesProposal: (id: string, base_revision: number) =>
+    request<ChangeSet>("POST", `/api/projects/${enc(id)}/ai/pages`, { base_revision }),
+  exportFormats: (id: string) => request<ExportFormatInfo[]>("GET", `/api/projects/${enc(id)}/exports`),
+  exportUrl: (id: string, key: string, revision?: number) =>
+    `/api/projects/${enc(id)}/exports/${enc(key)}${revision ? `?revision=${revision}` : ""}`,
+  shares: (id: string) => request<ShareInfo[]>("GET", `/api/projects/${enc(id)}/shares`),
+  createShare: (id: string, expires_in_hours: number) =>
+    request<ShareInfo>("POST", `/api/projects/${enc(id)}/shares`, { expires_in_hours }),
+  revokeShare: (id: string, share: string) => request<void>("DELETE", `/api/projects/${enc(id)}/shares/${enc(share)}`),
+  shared: (token: string) =>
+    request<{ name: string; revision: number; document: ArchitectureDocument; read_only: true; expires_at: string }>(
+      "GET", `/api/shared/${enc(token)}`),
+  exportAccount: () => request<unknown>("GET", "/api/account/export"),
+  deleteAccount: (password: string) => request<void>("DELETE", "/api/account", { password }),
 };

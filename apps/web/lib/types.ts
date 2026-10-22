@@ -2,6 +2,7 @@
 // `lib/types.test.ts` checks every *_KEYS list below against lib/generated/architecture.schema.json,
 // and `satisfies Record<keyof T, true>` makes tsc check the same lists against these types.
 // Regenerate the JSON with: (cd apps/api && uv run python -m architectflow.schema.export).
+import type { DesignDocument } from "./design-types";
 
 export type PropValue = string | number | boolean;
 
@@ -167,6 +168,7 @@ export interface ArchitectureDocument {
   viewport: Viewport;
   database: { entities: Entity[] };
   api: { endpoints: Endpoint[] };
+  design: DesignDocument;
   prompt_settings: PromptSettings;
 }
 
@@ -176,7 +178,7 @@ export const SCHEMA_KEYS = {
     schema_version: true, vision: true, requirements: true, actors: true, workflows: true,
     integrations: true, technology_preferences: true, constraints: true, assumptions: true,
     open_questions: true, decisions: true, nodes: true, edges: true, groups: true,
-    viewport: true, database: true, api: true, prompt_settings: true,
+    viewport: true, database: true, api: true, design: true, prompt_settings: true,
   } satisfies Keys<ArchitectureDocument>,
   Node: {
     id: true, type: true, label: true, description: true, technology: true, position: true,
@@ -220,6 +222,7 @@ export function emptyDocument(): ArchitectureDocument {
     actors: [], workflows: [], integrations: [], technology_preferences: [], constraints: [],
     assumptions: [], open_questions: [], decisions: [], nodes: [], edges: [], groups: [],
     viewport: { x: 0, y: 0, zoom: 1 }, database: { entities: [] }, api: { endpoints: [] },
+    design: { themes: [], active_theme_id: null, pages: [], journeys: [] },
     prompt_settings: {
       mode: "complete_app", preset: "claude_code", sections: [...ALL_PROMPT_SECTIONS],
       page_id: null,

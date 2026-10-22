@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, Boxes, CheckCircle2, ClipboardList, Cloud, CloudOff, Database, FileText, GitBranch,
-  History, LayoutDashboard, Lightbulb, Loader2, Network, Redo2, Route, ShieldCheck, Undo2, Webhook,
+  History, LayoutDashboard, Lightbulb, Loader2, Network, Palette, Redo2, Route, ShieldCheck, Undo2, Webhook,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useProject } from "@/lib/project-store";
@@ -23,10 +23,12 @@ import { JourneysView } from "./views/JourneysView";
 import { DatabaseView } from "./views/DatabaseView";
 import { ApiView } from "./views/ApiView";
 import { SecurityView } from "./views/SecurityView";
+import { DesignView } from "./views/DesignView";
 
 const NAV: [View, string, LucideIcon][] = [
   ["overview", "Overview", LayoutDashboard], ["vision", "Product vision", Lightbulb], ["requirements", "Requirements", ClipboardList],
-  ["journeys", "User journeys", Route], ["architecture", "System architecture", Network], ["database", "Database design", Database],
+  ["journeys", "User journeys", Route], ["architecture", "System architecture", Network], ["design", "UI/UX design", Palette],
+  ["database", "Database design", Database],
   ["api", "API design", Webhook], ["security", "Security & infra", ShieldCheck], ["validation", "Validation findings", CheckCircle2],
   ["prompt", "Implementation prompt", FileText], ["versions", "Versions & exports", History],
 ];
@@ -55,7 +57,7 @@ export function Workspace({ sample }: { sample: boolean }) {
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-3 border-b border-line bg-panel px-4 py-2">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line bg-panel px-4 py-2">
         <Link href="/projects" aria-label="Back to projects" className="text-muted hover:text-fg"><ArrowLeft size={16} /></Link>
         <Logo size={16} />
         <span className="text-faint">/</span>
@@ -82,8 +84,15 @@ export function Workspace({ sample }: { sample: boolean }) {
           </div>
         </div>
       )}
+      <div className="border-b border-line bg-panel px-3 py-2 md:hidden">
+        <label className="flex items-center gap-2 text-xs text-muted">Workspace
+          <select aria-label="Workspace" className="flex-1 rounded border border-line bg-bg px-2 py-1.5 text-sm text-fg" value={view} onChange={(e) => setView(e.target.value as View)}>
+            {NAV.map(([key, text]) => <option key={key} value={key}>{text}</option>)}
+          </select>
+        </label>
+      </div>
       <div className="flex min-h-0 flex-1">
-        <nav aria-label="Workspaces" className="w-52 shrink-0 overflow-auto border-r border-line bg-panel py-2">
+        <nav aria-label="Workspaces" className="hidden w-52 shrink-0 overflow-auto border-r border-line bg-panel py-2 md:block">
           {NAV.map(([key, text, NavIcon]) => (
             <button key={key} type="button" onClick={() => setView(key)} aria-current={view === key ? "page" : undefined}
               className={`flex w-full items-center gap-2.5 px-4 py-2 text-left text-[13px] ${view === key ? "bg-panel-2 text-fg" : "text-muted hover:text-fg"}`}>
@@ -99,6 +108,7 @@ export function Workspace({ sample }: { sample: boolean }) {
           {view === "requirements" && <RequirementsView />}
           {view === "journeys" && <JourneysView />}
           {view === "architecture" && <ArchitectureView highlight={highlight} onGoToVision={() => setView("vision")} />}
+          {view === "design" && <DesignView />}
           {view === "database" && <DatabaseView />}
           {view === "api" && <ApiView />}
           {view === "security" && <SecurityView onShow={showFinding} />}
@@ -114,8 +124,8 @@ export function Workspace({ sample }: { sample: boolean }) {
 function ProjectName({ initial, onRename }: { initial: string; onRename: (name: string) => void }) {
   const [name, setName] = useState(initial);
   return (
-    <Input aria-label="Project name" className="h-8 w-64 border-transparent bg-transparent font-medium hover:border-line" value={name} maxLength={200}
+    <div className="w-64 max-w-[45vw]"><Input aria-label="Project name" className="h-8 border-transparent bg-transparent font-medium hover:border-line" value={name} maxLength={200}
       onChange={(e) => setName(e.target.value)} onBlur={() => { if (name.trim() && name !== initial) onRename(name.trim()); }}
-      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
+      onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></div>
   );
 }

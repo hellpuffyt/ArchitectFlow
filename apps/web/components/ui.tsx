@@ -1,6 +1,6 @@
 "use client";
 // Small accessible primitives shared across the app.
-import { forwardRef, useEffect, useRef } from "react";
+import { forwardRef, useEffect, useId, useRef } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
@@ -53,6 +53,7 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "ok" 
 /** Native <dialog> modal: focus trap, Escape to close and inert background come from the browser. */
 export function Dialog({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId(); // unique per dialog: several dialogs can be mounted in one view
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -63,11 +64,11 @@ export function Dialog({ open, onClose, title, children, footer }: { open: boole
     return () => { if (d.open) d.close(); };
   }, [open]);
   return (
-    <dialog ref={ref} aria-labelledby="dlg-title"
+    <dialog ref={ref} aria-labelledby={titleId}
       // The native "close" event is queued; ignore a stale one that arrives after a quick reopen.
       onClose={() => { if (!ref.current?.open) onClose(); }}
       className="m-auto w-[min(560px,92vw)] rounded-xl border border-line bg-panel p-0 text-fg shadow-2xl">
-      <div className="border-b border-line px-5 py-3.5"><h2 id="dlg-title" className="text-base font-semibold">{title}</h2></div>
+      <div className="border-b border-line px-5 py-3.5"><h2 id={titleId} className="text-base font-semibold">{title}</h2></div>
       <div className="max-h-[60vh] overflow-auto px-5 py-4 text-sm">{children}</div>
       {footer && <div className="flex justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
     </dialog>

@@ -143,3 +143,12 @@ test("regression: a modal opened before navigation does not leave the next page 
   await expect(page.getByRole("heading", { name: "Requirements" })).toBeVisible();
   expect(await page.evaluate(() => document.querySelectorAll("dialog[open]").length)).toBe(0);
 });
+
+test("regression: each dialog has its own accessible name", async ({ page }) => {
+  await signUp(page);
+  await createProject(page, "Dialog names");
+  await page.getByRole("navigation", { name: "Workspaces" }).getByRole("button", { name: "Versions & exports" }).click();
+  const ids = await page.evaluate(() => [...document.querySelectorAll("dialog")].map((d) => d.getAttribute("aria-labelledby")));
+  expect(ids.length).toBeGreaterThan(1);
+  expect(new Set(ids).size).toBe(ids.length);
+});

@@ -52,3 +52,29 @@ export async function generateSample(page: Page) {
 export async function headRevision(page: Page) {
   return Number((await page.getByTestId("head-revision").textContent())?.replace("r", ""));
 }
+
+export function projectId(page: Page) {
+  return page.url().split("/").pop()!.split("?")[0];
+}
+
+export async function savedDoc(page: Page) {
+  const r = await page.request.get(`/api/projects/${projectId(page)}`);
+  return (await r.json()).document;
+}
+
+export async function previewVar(page: Page, name: string) {
+  return page.getByTestId("theme-preview").evaluate((el, n) => (el as HTMLElement).style.getPropertyValue(n), name);
+}
+
+/** Generate the sample architecture, then propose + apply pages from requirements. */
+export async function generateWithPages(page: Page) {
+  await generateSample(page);
+  await openView(page, "UI/UX design");
+  await page.getByRole("tab", { name: "Design assistant" }).click();
+  await page.getByRole("button", { name: "Propose pages" }).click();
+  const review = page.getByRole("region", { name: "Proposed changes" });
+  await expect(review.getByText(/\+ page Inventory items \(\/items\)/)).toBeVisible();
+  await review.getByRole("button", { name: "Apply changes" }).click();
+  await expect(review.getByText("applied", { exact: true })).toBeVisible();
+  await waitSaved(page);
+}
