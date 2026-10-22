@@ -5,6 +5,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.12 /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
+# The base image's pip is unused (dependencies live in /app/.venv); remove it from the runtime.
+RUN python -m pip uninstall -y pip
 COPY architectflow ./architectflow
 COPY migrations ./migrations
 COPY alembic.ini ./

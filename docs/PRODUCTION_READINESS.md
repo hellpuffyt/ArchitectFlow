@@ -129,7 +129,7 @@ Environment: Colima on macOS (Docker Engine 29.5.2, Ubuntu 24.04 VM, kernel 6.8,
 
 | Step | Result |
 |---|---|
-| `docker compose build api`, then `web` (BuildKit, one at a time due to the 4 GB VM) | both built; **api 667 MB, web 1.16 GB** (arm64) |
+| `docker compose build api`, then `web` (BuildKit, one at a time due to the 4 GB VM) | both built; api 667 MB, web 1.16 GB at first (arm64); web 410 MB after the standalone change |
 | `docker compose up -d`, first attempt | **defect found:** the API exited because `uv run` could not create `/home/app/.cache/uv` (the system user has no home directory). Fixed in `240ebdf` by running the image's virtualenv directly |
 | `docker compose up -d` after the fix | db healthy, API healthy in 9 s; `alembic upgrade head` ran in the container (`alembic_version = 0001`) |
 | `ARCHITECTFLOW_E2E_BASE_URL=http://localhost:3000 npx playwright test e2e/core-journey.spec.ts --repeat-each=3 --workers=1` against the compose stack | **3 passed (41.6 s)**, with `Secure` cookies on localhost |
@@ -140,10 +140,36 @@ Environment: Colima on macOS (Docker Engine 29.5.2, Ubuntu 24.04 VM, kernel 6.8,
 Not verified:
 - **amd64 images:** this machine is arm64; CI builds amd64 once it runs.
 - **The TLS reverse proxy.**
-- **Image vulnerability scanning.**
 
-The web image is large (1.16 GB) because its runtime stage installs all production `node_modules`.
-Next.js `output: "standalone"` is a known improvement (listed in good-first-issues).
+(The web image was later reduced from 1.16 GB to 410 MB with the standalone output; see the scan section.)
+
+## Image vulnerability scan (Trivy 0.76.1, `trivy image --scanners vuln,secret`)
+
+| Image | Image ID | OS | CRITICAL | HIGH | MEDIUM | LOW | UNKNOWN | Fixable | Secrets |
+|---|---|---|---|---|---|---|---|---|---|
+| web **before** | `sha256:2e022d9033db…f960c` | Debian 12.15 | **1** (zlib1g CVE-2023-45853, no Debian fix) | 60 | 94 | 84 | 1 | 3 HIGH, 7 MEDIUM, 1 LOW | 0 |
+| web **after** | `sha256:53fdaa48452881731d895ee12e1ce46bec681a77b9d986eef8ed6cb0ee5d96ef` | Debian 13.7 | **0** | 43 | 58 | 60 | 1 | **0** | 0 |
+| api **before** | `sha256:c49a879a499a…bde7b` | Debian 13.7 | 0 | 44 | 63 | 62 | 1 | 5 MEDIUM, 1 LOW (pip) | 0 |
+| api **after** | `sha256:a449e30b48d4795602d54890bf036cf8a8a68838e7a7cbf58064613004276fff` | Debian 13.7 | **0** | 44 | 58 | 61 | 1 | **0** | 0 |
+
+Images are local builds and have no registry RepoDigests; the IDs above are `docker image inspect --format '{{.Id}}'`.
+
+What changed:
+- **Web.** The 3 fixable HIGH findings (brace-expansion ×2, undici) and the fixable MEDIUM/LOW
+  findings were all inside the **npm CLI bundled with the Node base image**, not in app
+  dependencies. The runtime stage now uses Next.js `output: "standalone"` on `node:24-trixie-slim`
+  and deletes npm, npx, corepack and yarn. The CRITICAL zlib1g finding disappeared with the move
+  from Debian 12 to Debian 13. Size (`docker images`): 1.16 GB → **410 MB**.
+- **API.** The fixable findings were the base image's unused `pip`; it is uninstalled. The app runs
+  from `/app/.venv`.
+- **Remaining.** 43–44 HIGH per image are Debian 13 OS packages with **no fixed version available**.
+  These images are therefore *not* free of HIGH findings.
+
+Re-verification of the rebuilt images:
+- Compose up: healthy in 6 s; migrations at `0001`.
+- Core journey against the containers: **3/3** passed.
+- Local-mode Playwright: 20 passed, 2 opt-in skipped.
+- Vitest 46/46; lint and typecheck clean.
 
 ## Bugs found and fixed (each with a regression test)
 - A modal left a hidden previous route inert → `regression: a modal opened before navigation…`

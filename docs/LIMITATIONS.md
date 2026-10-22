@@ -16,7 +16,7 @@
   journeys and edges, not from real call traces. Deployment diagrams use groups and replicas only.
 - **Undo/redo** is per browser tab and in memory; version history is the durable record.
 - **Revisions** grow without pruning; each save stores the full document (≤ 2 MB).
-- **Docker:** verified on arm64 only; the web image is 1.16 GB (no Next.js standalone output yet).
+- **Docker:** verified on arm64 only. Trivy reports 43–44 HIGH OS-package findings per image with no Debian fix available (0 CRITICAL, 0 fixable).
 - **Email:** no verification, password reset or 2FA.
 - **Accessibility:** keyboard paths exist for the main flows (tested: sign-in, workspace navigation,
   canvas shortcuts, connection list); no full screen-reader audit was performed.

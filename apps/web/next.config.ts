@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
 const apiOrigin = process.env.ARCHITECTFLOW_API_ORIGIN ?? "http://127.0.0.1:8000";
 
 const nextConfig: NextConfig = {
+  // Self-contained server output for the Docker runtime image (no npm/node_modules install).
+  output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
