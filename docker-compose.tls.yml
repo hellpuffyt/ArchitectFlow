@@ -1,0 +1,24 @@
+# Adds a Caddy TLS reverse proxy in front of the stack:
+#   POSTGRES_PASSWORD=... docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+# then open https://localhost:8443 (self-signed local CA; your browser will warn).
+services:
+  web:
+    ports: !reset []        # only reachable through the proxy
+  api:
+    environment:
+      # The API is reachable only inside the compose network (from the web server), so it may
+      # trust X-Forwarded-For to log/rate-limit by the real client address.
+      FORWARDED_ALLOW_IPS: "*"
+  proxy:
+    image: caddy:2
+    environment:
+      PUBLIC_HTTPS_PORT: "8443"
+    ports:
+      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [web]
+volumes:
+  caddy-data:

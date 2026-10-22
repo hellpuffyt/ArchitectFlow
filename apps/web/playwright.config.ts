@@ -21,6 +21,8 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     permissions: ["clipboard-read", "clipboard-write"],
+    // For HTTPS deployments using a local/self-signed CA (e.g. the Caddy example).
+    ignoreHTTPSErrors: process.env.ARCHITECTFLOW_E2E_IGNORE_HTTPS_ERRORS === "1",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
   webServer: EXTERNAL ? [] : [

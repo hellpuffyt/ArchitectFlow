@@ -20,6 +20,23 @@ docker compose up --build -d     # web on 127.0.0.1:3000
 Put HTTPS in front (cookies are `Secure` by default). The API image runs `alembic upgrade head`
 before starting. Run **one API worker per container**: rate limits are per process.
 
+## HTTPS with Caddy (example, verified locally)
+
+```bash
+export POSTGRES_PASSWORD=$(openssl rand -hex 24)
+docker compose -f docker-compose.yml -f docker-compose.tls.yml up -d
+open https://localhost:8443        # http://localhost:8080 redirects (308) to HTTPS
+```
+
+`deploy/caddy/Caddyfile` uses `tls internal`. Caddy creates a local CA and certificate at runtime
+in the `caddy-data` volume, so no key is stored in the repository. Browsers warn until you trust
+that CA. For a real domain, set `SITE_ADDRESS` to the domain and remove `tls internal` so Caddy
+obtains a Let's Encrypt certificate. The override also:
+- hides the web port, so the app is reachable only through the proxy;
+- adds HSTS;
+- sets `FORWARDED_ALLOW_IPS` on the API, which is reachable only inside the Compose network, so
+  logs and rate limits see the real client address.
+
 ## Checklist
 - HTTPS everywhere; keep `ARCHITECTFLOW_SECURE_COOKIES=true`.
 - Back up PostgreSQL (revisions are the only copy of designs).

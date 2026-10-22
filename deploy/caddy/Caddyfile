@@ -1,0 +1,23 @@
+# TLS reverse proxy for the Compose stack (see docs/DEPLOYMENT.md).
+# `tls internal` makes Caddy create a local CA and certificate at runtime inside its data volume:
+# no key or certificate is stored in this repository. For a public host, replace `localhost`
+# with your domain and remove `tls internal` to get a Let's Encrypt certificate.
+{
+	auto_https disable_redirects
+}
+
+# Plain HTTP: redirect everything to HTTPS on the published port.
+http:// {
+	redir https://{host}:{$PUBLIC_HTTPS_PORT:443}{uri} 308
+}
+
+{$SITE_ADDRESS:localhost} {
+	tls internal
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	# Caddy sets X-Forwarded-For / -Proto / -Host for the upstream.
+	reverse_proxy web:3000
+}

@@ -139,7 +139,6 @@ Environment: Colima on macOS (Docker Engine 29.5.2, Ubuntu 24.04 VM, kernel 6.8,
 
 Not verified:
 - **amd64 images:** this machine is arm64; CI builds amd64 once it runs.
-- **The TLS reverse proxy.**
 
 (The web image was later reduced from 1.16 GB to 410 MB with the standalone output; see the scan section.)
 
@@ -184,6 +183,21 @@ Re-verification of the rebuilt images:
 - Caveat: emulation proves the images build and run correctly. It says nothing about native amd64
   performance.
 
+## TLS reverse proxy (Caddy, `docker-compose.tls.yml`, arm64)
+
+| Check | Result |
+|---|---|
+| `http://localhost:8080/projects` | `308` → `https://localhost:8443/projects` |
+| Certificate | issued at runtime by "Caddy Local Authority – ECC Intermediate", SAN `DNS:localhost`; nothing committed |
+| Web port 3000 | not published (connection refused); app reachable only via the proxy |
+| `POST /api/auth/signup` over HTTPS | `201`; `Set-Cookie: af_session=…; HttpOnly; …; SameSite=lax; Secure`; `Strict-Transport-Security: max-age=31536000` |
+| Forwarded headers | API access log shows the real client (`172.18.0.1`, the network gateway), not the web (`.4`) or proxy (`.5`) container; a client-supplied `X-Forwarded-For: 203.0.113.9` was not trusted |
+| Core journey through HTTPS (`ARCHITECTFLOW_E2E_BASE_URL=https://localhost:8443 ARCHITECTFLOW_E2E_IGNORE_HTTPS_ERRORS=1`, `--repeat-each=3`) | **3 passed (38.2 s)** |
+| `down -v` | 0 ArchitectFlow containers, volumes (incl. `caddy-data`) or networks left |
+
+Not verified: a publicly trusted certificate on a real domain (ACME), and running behind a CDN or
+cloud load balancer.
+
 ## Bugs found and fixed (each with a regression test)
 - A modal left a hidden previous route inert → `regression: a modal opened before navigation…`
 - A stale native `close` event closed a quickly reopened dialog → `edges` spec (cancel, then reopen)
@@ -207,10 +221,11 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 
 ## Explicitly unverified (with reason)
 - **Native amd64 hardware:** amd64 images were built and run under QEMU emulation only.
-- **Live OpenAI-compatible / Anthropic providers:** no provider credentials exist. The HTTP
+- **Public-domain TLS (ACME):** only the local-CA Caddy example was verified.
+- **Live OpenAI-compatible / Anthropic providers (NOT RUN):** no provider credentials exist. The HTTP
   handling is tested against local servers (unreachable, timeout, 429, 401, 500, malformed
   output), but not against the real services.
-- **GitHub Actions:** the repository is not published yet, so CI has never run.
+- **GitHub Actions (NOT RUN):** the repository is not published yet, so CI has never run.
 
 ## Needed for further verification
 - GitHub Actions run (Ubuntu): API, web, E2E with a Postgres service, the deep-path script and Docker builds.
