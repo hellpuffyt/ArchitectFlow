@@ -32,7 +32,7 @@ but CI has not run yet. Windows has not been tested; the shell scripts need bash
 | Command | Result |
 |---|---|
 | `scripts/dev-db.sh start` | started on 127.0.0.1:54329, exit 0 |
-| `cd apps/api && uv run pytest` | **114 passed**, exit 0 |
+| `cd apps/api && uv run pytest` | **114 passed**, exit 0 (at `12afa2f`; 115 after the requirement-conflict test in `185ca81`) |
 | `cd apps/web && npm test` | **46 passed** (6 files) |
 | `npx playwright test` | **19 passed, 2 skipped** (both opt-in, see below) |
 | `ARCHITECTFLOW_E2E_STOP_DB=1 npx playwright test -g "PostgreSQL down"` | **1 passed** |
@@ -103,7 +103,7 @@ in the clean clone (see "Repeat run" below).
 | # | Area | Evidence | Result |
 |---|---|---|---|
 | 1 | Project create/rename/duplicate/archive/delete | `test_project_crud_search_archive_duplicate_delete` | pass |
-| 2 | Requirements create/edit, assumptions confirmed | `test_generate_review_apply_persists` (assumption status); UI: `RequirementsView` exercised by keyboard spec | partial: UI editing of requirements is not asserted end-to-end |
+| 2 | Requirements create/edit/delete, assumptions confirmed, actors/constraints, conflicts | `e2e/requirements.spec.ts` (real browser + PostgreSQL: edit/add/delete functional and non-functional requirements, confirm an assumption, edit a role and a constraint, reload → saved document identical, *Conflicting requirements* finding from saved data, prompt shows CONFIRMED vs ASSUMPTION with the new `source_revision`); `test_requirement_conflicts_from_saved_data` | pass — `--repeat-each=5 --workers=1`: 5/5 |
 | 3 | Example-mode generation | core journey, `test_example_provider_is_deterministic_and_labeled` | pass |
 | 4 | Architecture editing | core journey, `edges` spec | pass |
 | 5 | Undo/redo | core journey, theme spec, `history.test.ts` | pass |
@@ -121,7 +121,7 @@ in the clean clone (see "Repeat run" below).
 | 17 | Import validation | `workflow.spec.ts › (8)` | pass |
 | 18 | DB / AI provider unavailable | `test_failures.py` (missing key 503, unreachable 502, timeout 504, 429, 401, 500, bad JSON, invalid ops 422, DB down 503 — real sockets/servers); E2E PostgreSQL-down spec (real cluster stop) | pass |
 | 19 | Clean-checkout install | clean-clone run above | pass (local clone) |
-| 20 | Production build + deployment workflow | `next build` passes; Docker/Compose defined | partial: **images not built locally; CI pending** |
+| 20 | Production build + deployment workflow | `next build` passes; Docker/Compose defined | **unverified for Docker**: Docker is not installed on the verification machine, so the images and `docker compose up` were never built or run; a CI job is defined but CI has not run |
 
 ## Bugs found and fixed (each with a regression test)
 - A modal left a hidden previous route inert → `regression: a modal opened before navigation…`
@@ -142,6 +142,13 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 - Real LLM output quality is not evaluated.
 - Revisions are not pruned.
 - Single-owner projects only.
+
+## Explicitly unverified (with reason)
+- **Docker images / Compose:** Docker is not installed on the verification machine.
+- **Live OpenAI-compatible / Anthropic providers:** no provider credentials exist. The HTTP
+  handling is tested against local servers (unreachable, timeout, 429, 401, 500, malformed
+  output), but not against the real services.
+- **GitHub Actions:** the repository is not published yet, so CI has never run.
 
 ## Needed for further verification
 - GitHub Actions run (Ubuntu): API, web, E2E with a Postgres service, the deep-path script and Docker builds.
