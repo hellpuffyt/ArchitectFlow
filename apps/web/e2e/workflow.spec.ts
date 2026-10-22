@@ -172,3 +172,25 @@ test("PostgreSQL down: the editor shows 'not saved', keeps edits, and recovers o
   expect((await savedDoc(page)).nodes.find((n: { id: string }) => n.id === "core-api").label).toBe("Edited while DB down");
   void projectId;
 });
+
+test("regression: status shows Saving… (never Saved) while a restore is still in flight", async ({ page }) => {
+  await signUp(page);
+  await createProject(page, "Pending restore");
+  await generateSample(page);
+  const target = await headRevision(page);
+  await page.getByTestId("node-core-api").click();
+  await page.getByLabel("Component inspector").getByLabel("Name", { exact: true }).fill("Renamed");
+  await waitSaved(page);
+  // Hold the restore response for 1.5 s to observe the in-flight state deterministically.
+  await page.route("**/restore", async (route) => {
+    const response = await route.fetch();
+    await new Promise((r) => setTimeout(r, 1500));
+    await route.fulfill({ response });
+  });
+  await openView(page, "Versions & exports");
+  await page.getByRole("button", { name: `Restore revision ${target}` }).click();
+  await page.getByRole("dialog", { name: `Restore revision ${target}?` }).getByRole("button", { name: "Restore as new revision" }).click();
+  await expect(page.getByTestId("save-status")).toHaveText(/Saving/);
+  await waitSaved(page);
+  expect((await savedDoc(page)).nodes.find((n: { id: string }) => n.id === "core-api").label).toBe("Core API");
+});

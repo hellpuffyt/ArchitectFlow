@@ -35,6 +35,11 @@ interface Store {
   saveNow: () => Promise<boolean>;
   /** Adopt a document the server already saved (AI apply, restore). */
   adoptServerDocument: (doc: ArchitectureDocument, head: number) => void;
+  /**
+   * Run a server-side mutation (restore, apply, import). While it is pending the status shows
+   * "Saving…", so the UI never shows "Saved" before the operation has actually landed.
+   */
+  serverOp: <T>(fn: () => Promise<T>) => Promise<T>;
   reloadLatest: () => Promise<void>;
   keepMine: () => Promise<void>;
   renameProject: (name: string) => Promise<void>;
@@ -58,6 +63,7 @@ export function ProjectProvider({ id, children }: { id: string; children: ReactN
   const [status, setStatus] = useState<SaveStatus>("loading");
   const [saveError, setSaveError] = useState<ApiError | null>(null);
   const [selection, setSelection] = useState<Selection>({ nodes: [], edges: [] });
+  const [pendingOps, setPendingOps] = useState(0);
   const gestureBase = useRef<ArchitectureDocument | null>(null);
   const saving = useRef(false);
   const headRef = useRef(0);
@@ -153,6 +159,15 @@ export function ProjectProvider({ id, children }: { id: string; children: ReactN
     setSaveError(null);
   }, []);
 
+  const serverOp = useCallback(async <T,>(fn: () => Promise<T>): Promise<T> => {
+    setPendingOps((n) => n + 1);
+    try {
+      return await fn();
+    } finally {
+      setPendingOps((n) => n - 1);
+    }
+  }, []);
+
   const reloadLatest = useCallback(async () => {
     setStatus("loading");
     await load();
@@ -173,13 +188,14 @@ export function ProjectProvider({ id, children }: { id: string; children: ReactN
   }, [id]);
 
   // "dirty" is derived: the document differs from the last saved snapshot.
-  const shownStatus: SaveStatus = status === "saved" && doc !== null && saved !== null && doc !== saved ? "dirty" : status;
+  const shownStatus: SaveStatus = pendingOps > 0 && (status === "saved" || status === "dirty") ? "saving"
+    : status === "saved" && doc !== null && saved !== null && doc !== saved ? "dirty" : status;
   const value = useMemo<Store>(() => ({
     project, loadError, doc, head, status: shownStatus, saveError,
     canUndo: (hist?.past.length ?? 0) > 0, canRedo: (hist?.future.length ?? 0) > 0,
     selection, setSelection, edit, beginGesture, transientEdit, endGesture, undo, redo, saveNow,
-    adoptServerDocument, reloadLatest, keepMine, renameProject,
+    adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject,
   }), [project, loadError, doc, head, shownStatus, saveError, hist, selection, edit, beginGesture, transientEdit,
-    endGesture, undo, redo, saveNow, adoptServerDocument, reloadLatest, keepMine, renameProject]);
+    endGesture, undo, redo, saveNow, adoptServerDocument, serverOp, reloadLatest, keepMine, renameProject]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

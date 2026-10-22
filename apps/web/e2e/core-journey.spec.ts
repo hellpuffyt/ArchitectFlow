@@ -103,7 +103,9 @@ test("core journey: vision → review → edit graph → persist → validate �
   // 10. restore an earlier revision (the freshly generated design)
   await openView(page, "Versions & exports");
   await page.getByRole("button", { name: `Restore revision ${generatedRev}` }).click();
+  const beforeRestore = await headRevision(page);
   await page.getByRole("dialog", { name: `Restore revision ${generatedRev}?` }).getByRole("button", { name: "Restore as new revision" }).click();
+  await expect(page.getByTestId("head-revision")).toHaveText(`r${beforeRestore + 1}`);
   await waitSaved(page);
   const restored = await savedDoc(page);
   expect(restored).toEqual(generated);

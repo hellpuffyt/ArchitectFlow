@@ -8,7 +8,7 @@ import { Badge, Button, Dialog, ErrorBox } from "@/components/ui";
 
 /** Review a proposed change set: summary diff, validation findings, then apply or reject. */
 export function ChangeSetReview({ cs, onDone }: { cs: ChangeSet; onDone: (cs: ChangeSet | null) => void }) {
-  const { project, adoptServerDocument } = useProject();
+  const { project, adoptServerDocument, serverOp } = useProject();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [confirmLarge, setConfirmLarge] = useState(false);
@@ -21,7 +21,7 @@ export function ChangeSetReview({ cs, onDone }: { cs: ChangeSet; onDone: (cs: Ch
     setBusy(true);
     setError(null);
     try {
-      const r = await api.applyChangeset(project.id, cs.id, confirm);
+      const r = await serverOp(() => api.applyChangeset(project.id, cs.id, confirm));
       adoptServerDocument(r.document, r.head_revision);
       onDone(r.changeset);
     } catch (e) {
