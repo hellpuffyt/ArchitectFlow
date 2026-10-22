@@ -1,0 +1,200 @@
+[
+  {
+    "key": "web_client",
+    "label": "Web client",
+    "category": "client",
+    "description": "Browser application used by people.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "person",
+    "default_properties": {}
+  },
+  {
+    "key": "mobile_client",
+    "label": "Mobile client",
+    "category": "client",
+    "description": "iOS/Android application.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "person",
+    "default_properties": {}
+  },
+  {
+    "key": "api_gateway",
+    "label": "API gateway",
+    "category": "edge",
+    "description": "Single public entry point that routes, authenticates and rate-limits requests.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "load_balancer",
+    "label": "Load balancer",
+    "category": "edge",
+    "description": "Distributes traffic across replicas.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "service",
+    "label": "Backend service",
+    "category": "compute",
+    "description": "Stateless application service exposing an API.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "worker",
+    "label": "Background worker",
+    "category": "compute",
+    "description": "Consumes jobs or messages asynchronously.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "database",
+    "label": "Database",
+    "category": "data",
+    "description": "Durable system of record.",
+    "stateful": true,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container_db",
+    "default_properties": {}
+  },
+  {
+    "key": "cache",
+    "label": "Cache",
+    "category": "data",
+    "description": "In-memory cache; data is reconstructible.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container_db",
+    "default_properties": {}
+  },
+  {
+    "key": "search_index",
+    "label": "Search index",
+    "category": "data",
+    "description": "Full-text or vector search index.",
+    "stateful": true,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container_db",
+    "default_properties": {}
+  },
+  {
+    "key": "message_broker",
+    "label": "Message broker",
+    "category": "messaging",
+    "description": "Queue or log that decouples producers and consumers.",
+    "stateful": true,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "queue",
+    "default_properties": {}
+  },
+  {
+    "key": "auth_service",
+    "label": "Identity / auth",
+    "category": "identity",
+    "description": "Authentication and identity provider (OIDC, sessions, tokens).",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "object_storage",
+    "label": "Object storage",
+    "category": "storage",
+    "description": "Blob/file storage such as S3-compatible buckets.",
+    "stateful": true,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container_db",
+    "default_properties": {}
+  },
+  {
+    "key": "cdn",
+    "label": "CDN",
+    "category": "storage",
+    "description": "Edge cache for static and media content.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "external_api",
+    "label": "External service",
+    "category": "external",
+    "description": "Third-party API outside your control (payments, email, maps...).",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": true,
+    "c4_kind": "external",
+    "default_properties": {}
+  },
+  {
+    "key": "observability",
+    "label": "Observability",
+    "category": "operations",
+    "description": "Logs, metrics, traces and alerting.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "secrets_manager",
+    "label": "Secrets manager",
+    "category": "security",
+    "description": "Stores credentials and keys outside code and config.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "waf",
+    "label": "WAF / firewall",
+    "category": "security",
+    "description": "Filters malicious traffic in front of public endpoints.",
+    "stateful": false,
+    "public_by_default": true,
+    "initiates_calls": true,
+    "c4_kind": "container",
+    "default_properties": {}
+  },
+  {
+    "key": "cloud_resource",
+    "label": "Cloud resource",
+    "category": "infrastructure",
+    "description": "Infrastructure such as a cluster, VPC, region or serverless platform.",
+    "stateful": false,
+    "public_by_default": false,
+    "initiates_calls": false,
+    "c4_kind": "container",
+    "default_properties": {}
+  }
+]

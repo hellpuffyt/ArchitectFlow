@@ -1,0 +1,1248 @@
+{
+  "$defs": {
+    "AcceptanceCriterion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "AcceptanceCriterion",
+      "type": "object"
+    },
+    "Actor": {
+      "additionalProperties": false,
+      "description": "A person or system role. ``is_role`` marks application roles used for access rules.",
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "is_role": {
+          "default": true,
+          "title": "Is Role",
+          "type": "boolean"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Actor",
+      "type": "object"
+    },
+    "ApiDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "endpoints": {
+          "items": {
+            "$ref": "#/$defs/Endpoint"
+          },
+          "maxItems": 500,
+          "title": "Endpoints",
+          "type": "array"
+        }
+      },
+      "title": "ApiDesign",
+      "type": "object"
+    },
+    "ApiError": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 200,
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "maximum": 599,
+          "minimum": 400,
+          "title": "Status",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "status",
+        "description"
+      ],
+      "title": "ApiError",
+      "type": "object"
+    },
+    "ApiField": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_field": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Field"
+        },
+        "entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entity Id"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "default": "text",
+          "enum": [
+            "uuid",
+            "text",
+            "varchar",
+            "integer",
+            "bigint",
+            "numeric",
+            "boolean",
+            "date",
+            "timestamp",
+            "json",
+            "bytes"
+          ],
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ApiField",
+      "type": "object"
+    },
+    "Assumption": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "default": false,
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Assumption",
+      "type": "object"
+    },
+    "Constraint": {
+      "additionalProperties": false,
+      "description": "An explicit, machine-checkable project constraint.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "note",
+          "enum": [
+            "requires_component",
+            "forbids_technology",
+            "note"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "title": "Text",
+          "type": "string"
+        },
+        "value": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Constraint",
+      "type": "object"
+    },
+    "DatabaseDesign": {
+      "additionalProperties": false,
+      "properties": {
+        "entities": {
+          "items": {
+            "$ref": "#/$defs/Entity"
+          },
+          "maxItems": 300,
+          "title": "Entities",
+          "type": "array"
+        }
+      },
+      "title": "DatabaseDesign",
+      "type": "object"
+    },
+    "Decision": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "rationale": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "status": {
+          "default": "proposed",
+          "enum": [
+            "proposed",
+            "accepted",
+            "superseded"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "title": "Title",
+          "type": "string"
+        },
+        "tradeoffs": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Tradeoffs",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "Edge": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Data",
+          "type": "string"
+        },
+        "direction": {
+          "default": "one_way",
+          "enum": [
+            "one_way",
+            "two_way"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "encrypted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Encrypted"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Label",
+          "type": "string"
+        },
+        "properties": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "maxProperties": 50,
+          "propertyNames": {
+            "maxLength": 200
+          },
+          "title": "Properties",
+          "type": "object"
+        },
+        "protocol": {
+          "default": "HTTPS",
+          "maxLength": 200,
+          "title": "Protocol",
+          "type": "string"
+        },
+        "source": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Source",
+          "type": "string"
+        },
+        "synchronous": {
+          "default": true,
+          "title": "Synchronous",
+          "type": "boolean"
+        },
+        "target": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "target"
+      ],
+      "title": "Edge",
+      "type": "object"
+    },
+    "Endpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "auth": {
+          "default": "authenticated",
+          "enum": [
+            "public",
+            "authenticated",
+            "roles"
+          ],
+          "title": "Auth",
+          "type": "string"
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/ApiError"
+          },
+          "maxItems": 20,
+          "title": "Errors",
+          "type": "array"
+        },
+        "filters": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Filters",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "paginated": {
+          "default": false,
+          "title": "Paginated",
+          "type": "boolean"
+        },
+        "path": {
+          "maxLength": 200,
+          "pattern": "^/[A-Za-z0-9_\\-/{}.:]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "request_fields": {
+          "items": {
+            "$ref": "#/$defs/ApiField"
+          },
+          "maxItems": 100,
+          "title": "Request Fields",
+          "type": "array"
+        },
+        "response_entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Response Entity Id"
+        },
+        "response_fields": {
+          "items": {
+            "$ref": "#/$defs/ApiField"
+          },
+          "maxItems": 100,
+          "title": "Response Fields",
+          "type": "array"
+        },
+        "response_is_list": {
+          "default": false,
+          "title": "Response Is List",
+          "type": "boolean"
+        },
+        "roles": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Roles",
+          "type": "array"
+        },
+        "service_node_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Node Id"
+        },
+        "summary": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "method",
+        "path"
+      ],
+      "title": "Endpoint",
+      "type": "object"
+    },
+    "Entity": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "fields": {
+          "items": {
+            "$ref": "#/$defs/EntityField"
+          },
+          "maxItems": 200,
+          "title": "Fields",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "indexes": {
+          "items": {
+            "$ref": "#/$defs/Index"
+          },
+          "maxItems": 50,
+          "title": "Indexes",
+          "type": "array"
+        },
+        "label": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Label",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "node_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Node Id"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Entity",
+      "type": "object"
+    },
+    "EntityField": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Description",
+          "type": "string"
+        },
+        "foreign_key": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ForeignKey"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z_][a-z0-9_]{0,62}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "nullable": {
+          "default": true,
+          "title": "Nullable",
+          "type": "boolean"
+        },
+        "primary_key": {
+          "default": false,
+          "title": "Primary Key",
+          "type": "boolean"
+        },
+        "type": {
+          "default": "text",
+          "enum": [
+            "uuid",
+            "text",
+            "varchar",
+            "integer",
+            "bigint",
+            "numeric",
+            "boolean",
+            "date",
+            "timestamp",
+            "json",
+            "bytes"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "unique": {
+          "default": false,
+          "title": "Unique",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "EntityField",
+      "type": "object"
+    },
+    "ForeignKey": {
+      "additionalProperties": false,
+      "properties": {
+        "entity_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "field": {
+          "maxLength": 200,
+          "title": "Field",
+          "type": "string"
+        },
+        "on_delete": {
+          "default": "restrict",
+          "enum": [
+            "restrict",
+            "cascade",
+            "set_null"
+          ],
+          "title": "On Delete",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entity_id",
+        "field"
+      ],
+      "title": "ForeignKey",
+      "type": "object"
+    },
+    "Group": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "default": "boundary",
+          "enum": [
+            "boundary",
+            "deployment",
+            "team"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "title": "Label",
+          "type": "string"
+        },
+        "node_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 500,
+          "title": "Node Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "Group",
+      "type": "object"
+    },
+    "Index": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Fields",
+          "type": "array"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Reason",
+          "type": "string"
+        },
+        "unique": {
+          "default": false,
+          "title": "Unique",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "title": "Index",
+      "type": "object"
+    },
+    "Node": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "group_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group Id"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 200,
+          "title": "Label",
+          "type": "string"
+        },
+        "owner": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Owner",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/$defs/Position"
+        },
+        "properties": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "maxProperties": 50,
+          "propertyNames": {
+            "maxLength": 200
+          },
+          "title": "Properties",
+          "type": "object"
+        },
+        "public": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Public"
+        },
+        "replicas": {
+          "default": 1,
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Replicas",
+          "type": "integer"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Size"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "technology": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Technology",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 200,
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "label"
+      ],
+      "title": "Node",
+      "type": "object"
+    },
+    "Position": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "default": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "default": 0.0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "title": "Position",
+      "type": "object"
+    },
+    "PromptSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "default": "complete_app",
+          "enum": [
+            "complete_app",
+            "frontend",
+            "design_system",
+            "page",
+            "backend_api",
+            "database",
+            "architecture_docs",
+            "testing_qa"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "page_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Id"
+        },
+        "preset": {
+          "default": "claude_code",
+          "enum": [
+            "claude_code",
+            "openai_codex",
+            "generic_agent"
+          ],
+          "title": "Preset",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "enum": [
+              "overview",
+              "requirements",
+              "journeys",
+              "components",
+              "connections",
+              "data",
+              "api",
+              "security",
+              "deployment",
+              "design",
+              "pages",
+              "testing",
+              "decisions",
+              "open_questions"
+            ],
+            "type": "string"
+          },
+          "title": "Sections",
+          "type": "array"
+        }
+      },
+      "title": "PromptSettings",
+      "type": "object"
+    },
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "default": "",
+          "enum": [
+            "",
+            "feature",
+            "role",
+            "business",
+            "performance",
+            "security",
+            "availability",
+            "retention",
+            "deployment",
+            "scalability",
+            "durability",
+            "accessibility",
+            "compliance"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "priority": {
+          "default": "must",
+          "enum": [
+            "must",
+            "should",
+            "could"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "status": {
+          "default": "confirmed",
+          "enum": [
+            "confirmed",
+            "assumption"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 4000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "Requirements": {
+      "additionalProperties": false,
+      "properties": {
+        "acceptance_criteria": {
+          "items": {
+            "$ref": "#/$defs/AcceptanceCriterion"
+          },
+          "maxItems": 200,
+          "title": "Acceptance Criteria",
+          "type": "array"
+        },
+        "functional": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "maxItems": 200,
+          "title": "Functional",
+          "type": "array"
+        },
+        "nonfunctional": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "maxItems": 200,
+          "title": "Nonfunctional",
+          "type": "array"
+        }
+      },
+      "title": "Requirements",
+      "type": "object"
+    },
+    "Size": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "default": 64.0,
+          "maximum": 2000,
+          "minimum": 24,
+          "title": "Height",
+          "type": "number"
+        },
+        "width": {
+          "default": 180.0,
+          "maximum": 2000,
+          "minimum": 40,
+          "title": "Width",
+          "type": "number"
+        }
+      },
+      "title": "Size",
+      "type": "object"
+    },
+    "Viewport": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "default": 0.0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "default": 0.0,
+          "title": "Y",
+          "type": "number"
+        },
+        "zoom": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 10,
+          "title": "Zoom",
+          "type": "number"
+        }
+      },
+      "title": "Viewport",
+      "type": "object"
+    },
+    "Workflow": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor Id"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Workflow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One complete, saved architecture design.",
+  "properties": {
+    "actors": {
+      "items": {
+        "$ref": "#/$defs/Actor"
+      },
+      "maxItems": 100,
+      "title": "Actors",
+      "type": "array"
+    },
+    "api": {
+      "$ref": "#/$defs/ApiDesign"
+    },
+    "assumptions": {
+      "items": {
+        "$ref": "#/$defs/Assumption"
+      },
+      "maxItems": 100,
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "constraints": {
+      "items": {
+        "$ref": "#/$defs/Constraint"
+      },
+      "maxItems": 100,
+      "title": "Constraints",
+      "type": "array"
+    },
+    "database": {
+      "$ref": "#/$defs/DatabaseDesign"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/Decision"
+      },
+      "maxItems": 100,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "edges": {
+      "items": {
+        "$ref": "#/$defs/Edge"
+      },
+      "maxItems": 2000,
+      "title": "Edges",
+      "type": "array"
+    },
+    "groups": {
+      "items": {
+        "$ref": "#/$defs/Group"
+      },
+      "maxItems": 100,
+      "title": "Groups",
+      "type": "array"
+    },
+    "integrations": {
+      "items": {
+        "maxLength": 200,
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Integrations",
+      "type": "array"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/Node"
+      },
+      "maxItems": 500,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "open_questions": {
+      "items": {
+        "maxLength": 4000,
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Open Questions",
+      "type": "array"
+    },
+    "prompt_settings": {
+      "$ref": "#/$defs/PromptSettings"
+    },
+    "requirements": {
+      "$ref": "#/$defs/Requirements"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "technology_preferences": {
+      "items": {
+        "maxLength": 200,
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Technology Preferences",
+      "type": "array"
+    },
+    "viewport": {
+      "$ref": "#/$defs/Viewport"
+    },
+    "vision": {
+      "default": "",
+      "maxLength": 4000,
+      "title": "Vision",
+      "type": "string"
+    },
+    "workflows": {
+      "items": {
+        "$ref": "#/$defs/Workflow"
+      },
+      "maxItems": 100,
+      "title": "Workflows",
+      "type": "array"
+    }
+  },
+  "title": "ArchitectureDocument",
+  "type": "object"
+}
