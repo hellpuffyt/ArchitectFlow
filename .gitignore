@@ -1,0 +1,36 @@
+# local services and data
+/.dev/
+*.log
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# node / next
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# playwright
+test-results/
+playwright-report/
+blob-report/
+/e2e/.auth/
+
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

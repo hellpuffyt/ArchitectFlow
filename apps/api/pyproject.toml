@@ -1,0 +1,51 @@
+[project]
+name = "architectflow-api"
+version = "0.1.0"
+description = "ArchitectFlow API: architecture graphs, validation, AI change sets and implementation prompts"
+license = "MIT OR Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.159,<0.160",
+    "uvicorn[standard]>=0.54,<0.55",
+    "sqlalchemy>=2.1,<2.2",
+    "alembic>=1.20,<1.21",
+    "psycopg[binary]>=3.3,<3.4",
+    "pydantic>=2.14,<3",
+    "pydantic-settings>=2.6,<3",
+    "argon2-cffi>=25.1,<26",
+    "httpx>=0.28,<0.29",
+    "email-validator>=2.2,<3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.14",
+    "mypy>=1.18",
+    "pip-audit>=2.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF"]
+ignore = ["S101", "B008", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+"migrations/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["migrations/", "tests/"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
