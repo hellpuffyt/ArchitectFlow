@@ -1,0 +1,33 @@
+# Local/self-hosted stack. Validated in CI by `docker compose config` and image builds only;
+# the author's machine has no Docker. Put a TLS-terminating reverse proxy in front for production.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: architectflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: architectflow
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U architectflow"]
+      interval: 5s
+      retries: 10
+  api:
+    build: ./apps/api
+    environment:
+      ARCHITECTFLOW_DATABASE_URL: postgresql+psycopg://architectflow:${POSTGRES_PASSWORD}@db:5432/architectflow
+      ARCHITECTFLOW_SECURE_COOKIES: ${ARCHITECTFLOW_SECURE_COOKIES:-true}
+      ARCHITECTFLOW_AI_PROVIDER: ${ARCHITECTFLOW_AI_PROVIDER:-example}
+      ARCHITECTFLOW_AI_API_KEY: ${ARCHITECTFLOW_AI_API_KEY:-}
+      ARCHITECTFLOW_AI_MODEL: ${ARCHITECTFLOW_AI_MODEL:-}
+      ARCHITECTFLOW_AI_BASE_URL: ${ARCHITECTFLOW_AI_BASE_URL:-}
+    depends_on:
+      db: { condition: service_healthy }
+  web:
+    build:
+      context: ./apps/web
+      args: { ARCHITECTFLOW_API_ORIGIN: "http://api:8000" }
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [api]
+volumes:
+  pgdata:

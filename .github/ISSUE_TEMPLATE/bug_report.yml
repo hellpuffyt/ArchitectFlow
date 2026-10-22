@@ -1,0 +1,23 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened?, description: Include the exact error text shown in the UI or API response. }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: Expected behavior }
+  - type: input
+    id: version
+    attributes: { label: Version or commit, placeholder: "0.1.0 / abc1234" }
+  - type: input
+    id: env
+    attributes: { label: Environment, placeholder: "OS, browser, Node, Python, PostgreSQL versions; AI provider mode" }
+  - type: markdown
+    attributes: { value: "Do not paste API keys, passwords or private designs. Report security issues privately (see SECURITY.md)." }

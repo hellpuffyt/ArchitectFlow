@@ -1,0 +1,3758 @@
+{
+  "schema_version": 1,
+  "vision": "Build a multi-tenant jewellery management SaaS with inventory, billing, branch management, offline synchronization, role-based access, PostgreSQL, and an administrative dashboard.",
+  "requirements": {
+    "functional": [
+      {
+        "id": "fr-1",
+        "text": "Inventory",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      },
+      {
+        "id": "fr-2",
+        "text": "Billing",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      },
+      {
+        "id": "fr-3",
+        "text": "Branch management",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      },
+      {
+        "id": "fr-4",
+        "text": "Offline synchronization",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      },
+      {
+        "id": "fr-5",
+        "text": "Role-based access",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      },
+      {
+        "id": "fr-6",
+        "text": "Administrative dashboard",
+        "priority": "must",
+        "category": "feature",
+        "status": "confirmed"
+      }
+    ],
+    "nonfunctional": [
+      {
+        "id": "nfr-1",
+        "text": "Clients keep working without connectivity and synchronize when back online.",
+        "priority": "should",
+        "category": "availability",
+        "status": "assumption"
+      },
+      {
+        "id": "nfr-2",
+        "text": "Every API checks the caller's role; the UI hides actions a role cannot perform.",
+        "priority": "should",
+        "category": "security",
+        "status": "assumption"
+      },
+      {
+        "id": "nfr-3",
+        "text": "Tenant data is isolated: no query may return another tenant's rows.",
+        "priority": "should",
+        "category": "security",
+        "status": "assumption"
+      }
+    ],
+    "acceptance_criteria": [
+      {
+        "id": "ac-1",
+        "text": "Suggested: an authorized user can complete the 'Inventory' workflow end to end, and an unauthorized user is refused."
+      },
+      {
+        "id": "ac-2",
+        "text": "Suggested: an authorized user can complete the 'Billing' workflow end to end, and an unauthorized user is refused."
+      },
+      {
+        "id": "ac-3",
+        "text": "Suggested: an authorized user can complete the 'Branch management' workflow end to end, and an unauthorized user is refused."
+      },
+      {
+        "id": "ac-4",
+        "text": "Suggested: an authorized user can complete the 'Offline synchronization' workflow end to end, and an unauthorized user is refused."
+      },
+      {
+        "id": "ac-5",
+        "text": "Suggested: an authorized user can complete the 'Role-based access' workflow end to end, and an unauthorized user is refused."
+      },
+      {
+        "id": "ac-6",
+        "text": "Suggested: an authorized user can complete the 'Administrative dashboard' workflow end to end, and an unauthorized user is refused."
+      }
+    ]
+  },
+  "actors": [
+    {
+      "id": "admin",
+      "name": "Administrator",
+      "description": "",
+      "is_role": true
+    }
+  ],
+  "workflows": [],
+  "integrations": [
+    "Payment provider"
+  ],
+  "technology_preferences": [
+    "PostgreSQL"
+  ],
+  "constraints": [],
+  "assumptions": [
+    {
+      "id": "asm-1",
+      "text": "Single region deployment initially; multi-region is out of scope.",
+      "confirmed": false
+    },
+    {
+      "id": "asm-2",
+      "text": "The generated tables, endpoints and non-functional requirements are starting points inferred from keywords, not stated requirements.",
+      "confirmed": false
+    },
+    {
+      "id": "asm-3",
+      "text": "Tenants are isolated by a tenant_id column in one database.",
+      "confirmed": false
+    },
+    {
+      "id": "asm-4",
+      "text": "Offline conflicts resolve last-write-wins per record using server timestamps.",
+      "confirmed": false
+    }
+  ],
+  "open_questions": [
+    "How many users and requests per second do you expect at launch and in a year?",
+    "Are there compliance or data-residency requirements?",
+    "How should conflicting offline edits to the same record be resolved?",
+    "How long must data be retained, and when must it be deleted?"
+  ],
+  "decisions": [
+    {
+      "id": "adr-1",
+      "title": "API gateway as the single public entry point",
+      "rationale": "Keeps internal services private and centralizes TLS, auth checks and rate limits.",
+      "tradeoffs": "Adds a hop and a component to operate.",
+      "status": "proposed"
+    },
+    {
+      "id": "adr-2",
+      "title": "PostgreSQL as the system of record",
+      "rationale": "Relational integrity and transactions for core data.",
+      "tradeoffs": "Requires schema migrations; scale reads with replicas before sharding.",
+      "status": "proposed"
+    },
+    {
+      "id": "adr-3",
+      "title": "Shared database, tenant_id on every row",
+      "rationale": "Simplest multi-tenant model to operate; isolation is enforced by tenant-scoped queries (optionally Postgres row-level security).",
+      "tradeoffs": "A missing tenant filter leaks data; noisy tenants share capacity.",
+      "status": "proposed"
+    },
+    {
+      "id": "adr-4",
+      "title": "Offline-first clients with a sync endpoint",
+      "rationale": "Clients queue changes locally and push them in batches.",
+      "tradeoffs": "Requires conflict resolution and idempotent change ids.",
+      "status": "proposed"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "web",
+      "type": "web_client",
+      "label": "Web app",
+      "description": "",
+      "technology": "",
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "gateway",
+      "type": "api_gateway",
+      "label": "API gateway",
+      "description": "Public entry point: TLS termination, routing, rate limiting.",
+      "technology": "",
+      "position": {
+        "x": 260.0,
+        "y": 0.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "auth",
+      "type": "auth_service",
+      "label": "Auth service",
+      "description": "Sign-up, login, sessions/tokens.",
+      "technology": "OIDC",
+      "position": {
+        "x": 520.0,
+        "y": 0.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "core-api",
+      "type": "service",
+      "label": "Core API",
+      "description": "Business logic for the core workflows.",
+      "technology": "",
+      "position": {
+        "x": 520.0,
+        "y": 120.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "core team",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Primary database",
+      "description": "",
+      "technology": "PostgreSQL",
+      "position": {
+        "x": 1040.0,
+        "y": 0.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "core team",
+      "replicas": 1,
+      "properties": {
+        "encryption_at_rest": true,
+        "backup": "daily snapshots + PITR"
+      }
+    },
+    {
+      "id": "sync-api",
+      "type": "service",
+      "label": "Sync service",
+      "description": "Accepts batched offline changes and returns server updates since a client cursor.",
+      "technology": "",
+      "position": {
+        "x": 520.0,
+        "y": 240.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "core team",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "ext-payments",
+      "type": "external_api",
+      "label": "Payment provider",
+      "description": "",
+      "technology": "",
+      "position": {
+        "x": 1300.0,
+        "y": 0.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "secrets",
+      "type": "secrets_manager",
+      "label": "Secrets manager",
+      "description": "",
+      "technology": "",
+      "position": {
+        "x": 260.0,
+        "y": 120.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    },
+    {
+      "id": "observability",
+      "type": "observability",
+      "label": "Observability",
+      "description": "",
+      "technology": "OpenTelemetry",
+      "position": {
+        "x": 1300.0,
+        "y": 120.0
+      },
+      "size": null,
+      "group_id": null,
+      "public": null,
+      "owner": "",
+      "replicas": 1,
+      "properties": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-web-gateway",
+      "source": "web",
+      "target": "gateway",
+      "protocol": "HTTPS",
+      "label": "API calls",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-gateway-auth",
+      "source": "gateway",
+      "target": "auth",
+      "protocol": "HTTPS",
+      "label": "verify session",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-gateway-core-api",
+      "source": "gateway",
+      "target": "core-api",
+      "protocol": "HTTPS",
+      "label": "",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-core-api-db",
+      "source": "core-api",
+      "target": "db",
+      "protocol": "SQL/TLS",
+      "label": "read/write",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-auth-db",
+      "source": "auth",
+      "target": "db",
+      "protocol": "SQL/TLS",
+      "label": "users & sessions",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-gateway-sync-api",
+      "source": "gateway",
+      "target": "sync-api",
+      "protocol": "HTTPS",
+      "label": "sync batches",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-sync-api-db",
+      "source": "sync-api",
+      "target": "db",
+      "protocol": "SQL/TLS",
+      "label": "",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-core-api-ext-payments",
+      "source": "core-api",
+      "target": "ext-payments",
+      "protocol": "HTTPS",
+      "label": "",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-core-api-secrets",
+      "source": "core-api",
+      "target": "secrets",
+      "protocol": "HTTPS",
+      "label": "read credentials",
+      "direction": "one_way",
+      "synchronous": true,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    },
+    {
+      "id": "e-core-api-observability",
+      "source": "core-api",
+      "target": "observability",
+      "protocol": "OTLP",
+      "label": "traces & metrics",
+      "direction": "one_way",
+      "synchronous": false,
+      "encrypted": true,
+      "data": "",
+      "properties": {}
+    }
+  ],
+  "groups": [],
+  "viewport": {
+    "x": 0.0,
+    "y": 0.0,
+    "zoom": 1.0
+  },
+  "database": {
+    "entities": [
+      {
+        "id": "ent-tenant",
+        "name": "tenant",
+        "label": "Tenant",
+        "node_id": "db",
+        "fields": [
+          {
+            "id": "tenant-id",
+            "name": "id",
+            "type": "uuid",
+            "primary_key": true,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "tenant-name",
+            "name": "name",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "tenant-created",
+            "name": "created_at",
+            "type": "timestamp",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          }
+        ],
+        "indexes": [],
+        "description": "An organization using the SaaS; rows belong to one tenant."
+      },
+      {
+        "id": "ent-item",
+        "name": "item",
+        "label": "Inventory item",
+        "node_id": "db",
+        "fields": [
+          {
+            "id": "item-id",
+            "name": "id",
+            "type": "uuid",
+            "primary_key": true,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-tenant",
+            "name": "tenant_id",
+            "type": "uuid",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": {
+              "entity_id": "ent-tenant",
+              "field": "id",
+              "on_delete": "cascade"
+            },
+            "description": ""
+          },
+          {
+            "id": "item-sku",
+            "name": "sku",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-name",
+            "name": "name",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-description",
+            "name": "description",
+            "type": "text",
+            "primary_key": false,
+            "nullable": true,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-quantity",
+            "name": "quantity",
+            "type": "integer",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-unit_price",
+            "name": "unit_price",
+            "type": "numeric",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "item-created",
+            "name": "created_at",
+            "type": "timestamp",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "tenant_id"
+            ],
+            "unique": false,
+            "reason": "every query filters by tenant"
+          }
+        ],
+        "description": ""
+      },
+      {
+        "id": "ent-invoice",
+        "name": "invoice",
+        "label": "Invoice",
+        "node_id": "db",
+        "fields": [
+          {
+            "id": "invoice-id",
+            "name": "id",
+            "type": "uuid",
+            "primary_key": true,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "invoice-tenant",
+            "name": "tenant_id",
+            "type": "uuid",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": {
+              "entity_id": "ent-tenant",
+              "field": "id",
+              "on_delete": "cascade"
+            },
+            "description": ""
+          },
+          {
+            "id": "invoice-number",
+            "name": "number",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "invoice-status",
+            "name": "status",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "invoice-total",
+            "name": "total",
+            "type": "numeric",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "invoice-issued_at",
+            "name": "issued_at",
+            "type": "timestamp",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "invoice-created",
+            "name": "created_at",
+            "type": "timestamp",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "tenant_id"
+            ],
+            "unique": false,
+            "reason": "every query filters by tenant"
+          }
+        ],
+        "description": ""
+      },
+      {
+        "id": "ent-branch",
+        "name": "branch",
+        "label": "Branch",
+        "node_id": "db",
+        "fields": [
+          {
+            "id": "branch-id",
+            "name": "id",
+            "type": "uuid",
+            "primary_key": true,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "branch-tenant",
+            "name": "tenant_id",
+            "type": "uuid",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": {
+              "entity_id": "ent-tenant",
+              "field": "id",
+              "on_delete": "cascade"
+            },
+            "description": ""
+          },
+          {
+            "id": "branch-name",
+            "name": "name",
+            "type": "varchar",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "branch-address",
+            "name": "address",
+            "type": "text",
+            "primary_key": false,
+            "nullable": true,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          },
+          {
+            "id": "branch-created",
+            "name": "created_at",
+            "type": "timestamp",
+            "primary_key": false,
+            "nullable": false,
+            "unique": false,
+            "foreign_key": null,
+            "description": ""
+          }
+        ],
+        "indexes": [
+          {
+            "fields": [
+              "tenant_id"
+            ],
+            "unique": false,
+            "reason": "every query filters by tenant"
+          }
+        ],
+        "description": ""
+      }
+    ]
+  },
+  "api": {
+    "endpoints": [
+      {
+        "id": "api-list-item",
+        "method": "GET",
+        "path": "/api/items",
+        "summary": "List inventory items",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-item",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "id"
+          },
+          {
+            "name": "sku",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "sku"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "name"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-item",
+            "entity_field": "description"
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "quantity"
+          },
+          {
+            "name": "unit_price",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "unit_price"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": true,
+        "paginated": true,
+        "filters": [
+          "q"
+        ],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          }
+        ]
+      },
+      {
+        "id": "api-create-item",
+        "method": "POST",
+        "path": "/api/items",
+        "summary": "Create inventory item",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [
+          {
+            "name": "sku",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "sku"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "name"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-item",
+            "entity_field": "description"
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "quantity"
+          },
+          {
+            "name": "unit_price",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "unit_price"
+          }
+        ],
+        "response_entity_id": "ent-item",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "id"
+          },
+          {
+            "name": "sku",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "sku"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "name"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-item",
+            "entity_field": "description"
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "quantity"
+          },
+          {
+            "name": "unit_price",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "unit_price"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 422,
+            "description": "validation failed"
+          }
+        ]
+      },
+      {
+        "id": "api-get-item",
+        "method": "GET",
+        "path": "/api/items/{id}",
+        "summary": "Get one inventory item",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-item",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "id"
+          },
+          {
+            "name": "sku",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "sku"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "name"
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-item",
+            "entity_field": "description"
+          },
+          {
+            "name": "quantity",
+            "type": "integer",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "quantity"
+          },
+          {
+            "name": "unit_price",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "unit_price"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-item",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 404,
+            "description": "not found"
+          }
+        ]
+      },
+      {
+        "id": "api-list-invoice",
+        "method": "GET",
+        "path": "/api/invoices",
+        "summary": "List invoices",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-invoice",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "id"
+          },
+          {
+            "name": "number",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "number"
+          },
+          {
+            "name": "status",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "status"
+          },
+          {
+            "name": "total",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "total"
+          },
+          {
+            "name": "issued_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "issued_at"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": true,
+        "paginated": true,
+        "filters": [
+          "q"
+        ],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          }
+        ]
+      },
+      {
+        "id": "api-create-invoice",
+        "method": "POST",
+        "path": "/api/invoices",
+        "summary": "Create invoice",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [
+          {
+            "name": "number",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "number"
+          },
+          {
+            "name": "status",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "status"
+          },
+          {
+            "name": "total",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "total"
+          },
+          {
+            "name": "issued_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "issued_at"
+          }
+        ],
+        "response_entity_id": "ent-invoice",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "id"
+          },
+          {
+            "name": "number",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "number"
+          },
+          {
+            "name": "status",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "status"
+          },
+          {
+            "name": "total",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "total"
+          },
+          {
+            "name": "issued_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "issued_at"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 422,
+            "description": "validation failed"
+          }
+        ]
+      },
+      {
+        "id": "api-get-invoice",
+        "method": "GET",
+        "path": "/api/invoices/{id}",
+        "summary": "Get one invoice",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-invoice",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "id"
+          },
+          {
+            "name": "number",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "number"
+          },
+          {
+            "name": "status",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "status"
+          },
+          {
+            "name": "total",
+            "type": "numeric",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "total"
+          },
+          {
+            "name": "issued_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "issued_at"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-invoice",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 404,
+            "description": "not found"
+          }
+        ]
+      },
+      {
+        "id": "api-list-branch",
+        "method": "GET",
+        "path": "/api/branches",
+        "summary": "List branchs",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-branch",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "id"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "name"
+          },
+          {
+            "name": "address",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-branch",
+            "entity_field": "address"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": true,
+        "paginated": true,
+        "filters": [
+          "q"
+        ],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          }
+        ]
+      },
+      {
+        "id": "api-create-branch",
+        "method": "POST",
+        "path": "/api/branches",
+        "summary": "Create branch",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "name"
+          },
+          {
+            "name": "address",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-branch",
+            "entity_field": "address"
+          }
+        ],
+        "response_entity_id": "ent-branch",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "id"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "name"
+          },
+          {
+            "name": "address",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-branch",
+            "entity_field": "address"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 422,
+            "description": "validation failed"
+          }
+        ]
+      },
+      {
+        "id": "api-get-branch",
+        "method": "GET",
+        "path": "/api/branches/{id}",
+        "summary": "Get one branch",
+        "service_node_id": "core-api",
+        "auth": "roles",
+        "roles": [
+          "admin"
+        ],
+        "request_fields": [],
+        "response_entity_id": "ent-branch",
+        "response_fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "id"
+          },
+          {
+            "name": "name",
+            "type": "varchar",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "name"
+          },
+          {
+            "name": "address",
+            "type": "text",
+            "required": false,
+            "entity_id": "ent-branch",
+            "entity_field": "address"
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "required": true,
+            "entity_id": "ent-branch",
+            "entity_field": "created_at"
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 403,
+            "description": "role not allowed"
+          },
+          {
+            "status": 404,
+            "description": "not found"
+          }
+        ]
+      },
+      {
+        "id": "api-sync",
+        "method": "POST",
+        "path": "/api/sync",
+        "summary": "Push offline changes and pull updates since a cursor",
+        "service_node_id": "sync-api",
+        "auth": "authenticated",
+        "roles": [],
+        "request_fields": [
+          {
+            "name": "cursor",
+            "type": "text",
+            "required": false,
+            "entity_id": null,
+            "entity_field": null
+          },
+          {
+            "name": "changes",
+            "type": "json",
+            "required": true,
+            "entity_id": null,
+            "entity_field": null
+          }
+        ],
+        "response_entity_id": null,
+        "response_fields": [
+          {
+            "name": "cursor",
+            "type": "text",
+            "required": true,
+            "entity_id": null,
+            "entity_field": null
+          },
+          {
+            "name": "updates",
+            "type": "json",
+            "required": true,
+            "entity_id": null,
+            "entity_field": null
+          }
+        ],
+        "response_is_list": false,
+        "paginated": false,
+        "filters": [],
+        "errors": [
+          {
+            "status": 401,
+            "description": "not signed in"
+          },
+          {
+            "status": 409,
+            "description": "conflicting change rejected"
+          }
+        ]
+      }
+    ]
+  },
+  "design": {
+    "themes": [
+      {
+        "id": "theme",
+        "name": "SaaS light",
+        "preset": "saas-light",
+        "appearance": "light",
+        "light": {
+          "primary": "#4f46e5",
+          "on_primary": "#ffffff",
+          "secondary": "#64748b",
+          "accent": "#0ea5e9",
+          "background": "#ffffff",
+          "surface": "#f8fafc",
+          "text": "#0f172a",
+          "muted_text": "#475569",
+          "border": "#e2e8f0",
+          "success": "#15803d",
+          "warning": "#b45309",
+          "danger": "#b91c1c",
+          "info": "#1d4ed8"
+        },
+        "dark": {
+          "primary": "#6b84ff",
+          "on_primary": "#0b1020",
+          "secondary": "#94a3b8",
+          "accent": "#2dd4bf",
+          "background": "#0d1117",
+          "surface": "#161b22",
+          "text": "#e6edf3",
+          "muted_text": "#9aa4b2",
+          "border": "#2b3240",
+          "success": "#3fb950",
+          "warning": "#d29922",
+          "danger": "#f85149",
+          "info": "#58a6ff"
+        },
+        "typography": {
+          "heading_font": "Inter, system-ui, sans-serif",
+          "body_font": "Inter, system-ui, sans-serif",
+          "mono_font": "ui-monospace, Menlo, monospace",
+          "base_size": 15,
+          "scale_ratio": 1.25,
+          "heading_weight": 650,
+          "body_weight": 400,
+          "line_height": 1.55
+        },
+        "spacing": {
+          "unit": 4,
+          "density": "comfortable"
+        },
+        "radii": {
+          "sm": 6,
+          "md": 10,
+          "lg": 16
+        },
+        "elevation": {
+          "shadow": "subtle",
+          "border_width": 1
+        },
+        "components": {
+          "button": "solid",
+          "button_radius": "lg",
+          "input": "outline",
+          "card": "elevated",
+          "navigation": "topbar",
+          "icon_stroke": 1.75,
+          "table_density": "comfortable"
+        },
+        "layout": {
+          "max_width": 1200,
+          "grid_columns": 12,
+          "gutter": 16,
+          "breakpoints": {
+            "sm": 640,
+            "md": 1024
+          }
+        },
+        "motion": {
+          "intensity": "subtle",
+          "duration_ms": 160,
+          "respect_reduced_motion": true
+        }
+      }
+    ],
+    "active_theme_id": "theme",
+    "pages": [
+      {
+        "id": "page-login",
+        "name": "Sign in",
+        "route": "/login",
+        "parent_id": null,
+        "description": "",
+        "requires_auth": false,
+        "roles": [],
+        "states": [
+          {
+            "kind": "validation_error",
+            "message": "Email or password is incorrect."
+          },
+          {
+            "kind": "loading",
+            "message": "Signing in\u2026"
+          },
+          {
+            "kind": "error",
+            "message": "Sign-in failed; try again."
+          }
+        ],
+        "layout": {
+          "id": "page-login-container",
+          "kind": "container",
+          "props": {
+            "align": "center",
+            "max_width": 420
+          },
+          "children": [
+            {
+              "id": "page-login-heading",
+              "kind": "heading",
+              "props": {
+                "text": "Sign in",
+                "level": 1
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-login-form",
+              "kind": "form",
+              "props": {
+                "label": "Sign in"
+              },
+              "children": [
+                {
+                  "id": "page-login-input",
+                  "kind": "input",
+                  "props": {
+                    "label": "Email",
+                    "name": "email",
+                    "type": "email",
+                    "required": true
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-login-input-2",
+                  "kind": "input",
+                  "props": {
+                    "label": "Password",
+                    "name": "password",
+                    "type": "password",
+                    "required": true
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-login-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "Sign in",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-dashboard",
+        "name": "Dashboard",
+        "route": "/",
+        "parent_id": null,
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Loading\u2026"
+          },
+          {
+            "kind": "error",
+            "message": "Could not load data."
+          },
+          {
+            "kind": "empty",
+            "message": "No activity yet."
+          }
+        ],
+        "layout": {
+          "id": "page-dashboard-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-dashboard-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-dashboard-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-dashboard-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-dashboard-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-dashboard-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-dashboard-heading",
+              "kind": "heading",
+              "props": {
+                "text": "Dashboard",
+                "level": 1
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-dashboard-alert",
+              "kind": "alert",
+              "props": {
+                "tone": "info",
+                "text": "You are offline. Changes are saved on this device and sync when you reconnect."
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-dashboard-grid",
+              "kind": "grid",
+              "props": {
+                "columns": 3
+              },
+              "children": [
+                {
+                  "id": "page-dashboard-stat",
+                  "kind": "stat",
+                  "props": {
+                    "label": "Inventory item",
+                    "value": "\u2014"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": "api-list-item",
+                  "entity_id": "ent-item",
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-dashboard-stat-2",
+                  "kind": "stat",
+                  "props": {
+                    "label": "Invoice",
+                    "value": "\u2014"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": "api-list-invoice",
+                  "entity_id": "ent-invoice",
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-dashboard-stat-3",
+                  "kind": "stat",
+                  "props": {
+                    "label": "Branch",
+                    "value": "\u2014"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": "api-list-branch",
+                  "entity_id": "ent-branch",
+                  "binding": null,
+                  "interaction": null
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": 1,
+                  "direction": null
+                },
+                "md": {
+                  "hidden": null,
+                  "columns": 2,
+                  "direction": null
+                }
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-dashboard-chart",
+              "kind": "chart",
+              "props": {
+                "label": "Activity (last 30 days)"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-items",
+        "name": "Inventory items",
+        "route": "/items",
+        "parent_id": "page-dashboard",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Loading inventory items\u2026"
+          },
+          {
+            "kind": "empty",
+            "message": "No inventory items yet."
+          },
+          {
+            "kind": "error",
+            "message": "Could not load the list. Retry."
+          },
+          {
+            "kind": "permission_denied",
+            "message": "Your role cannot view this list."
+          }
+        ],
+        "layout": {
+          "id": "page-items-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-items-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-items-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-items-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-items-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-items-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-items-stack",
+              "kind": "stack",
+              "props": {
+                "direction": "row",
+                "justify": "between"
+              },
+              "children": [
+                {
+                  "id": "page-items-heading",
+                  "kind": "heading",
+                  "props": {
+                    "text": "Inventory items",
+                    "level": 1
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-items-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "New inventory item",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-item-new",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": null,
+                  "direction": "column"
+                },
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-items-input",
+              "kind": "input",
+              "props": {
+                "label": "Search",
+                "name": "q",
+                "placeholder": "Search inventory items"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-items-table",
+              "kind": "table",
+              "props": {
+                "columns": "id, sku, name, description, quantity, unit_price"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": "api-list-item",
+              "entity_id": "ent-item",
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-item-new",
+        "name": "New inventory item",
+        "route": "/items/new",
+        "parent_id": "page-items",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Saving\u2026"
+          },
+          {
+            "kind": "validation_error",
+            "message": "Fix the highlighted fields."
+          },
+          {
+            "kind": "error",
+            "message": "Saving failed; nothing was stored."
+          },
+          {
+            "kind": "success",
+            "message": "Inventory item saved."
+          }
+        ],
+        "layout": {
+          "id": "page-item-new-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-item-new-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-item-new-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-item-new-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-item-new-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-item-new-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-item-new-heading",
+              "kind": "heading",
+              "props": {
+                "text": "New inventory item",
+                "level": 1
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-item-new-form",
+              "kind": "form",
+              "props": {
+                "label": "New inventory item"
+              },
+              "children": [
+                {
+                  "id": "page-item-new-input",
+                  "kind": "input",
+                  "props": {
+                    "label": "Sku",
+                    "name": "sku",
+                    "required": true,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-item",
+                    "entity_field": "sku"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-item-new-input-2",
+                  "kind": "input",
+                  "props": {
+                    "label": "Name",
+                    "name": "name",
+                    "required": true,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-item",
+                    "entity_field": "name"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-item-new-input-3",
+                  "kind": "input",
+                  "props": {
+                    "label": "Description",
+                    "name": "description",
+                    "required": false,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-item",
+                    "entity_field": "description"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-item-new-input-4",
+                  "kind": "input",
+                  "props": {
+                    "label": "Quantity",
+                    "name": "quantity",
+                    "required": true,
+                    "type": "number"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-item",
+                    "entity_field": "quantity"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-item-new-input-5",
+                  "kind": "input",
+                  "props": {
+                    "label": "Unit price",
+                    "name": "unit_price",
+                    "required": true,
+                    "type": "number"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-item",
+                    "entity_field": "unit_price"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-item-new-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "Save",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "call_api",
+                    "target_page_id": null,
+                    "endpoint_id": "api-create-item",
+                    "implemented": false
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": 1,
+                  "direction": null
+                },
+                "md": null
+              },
+              "endpoint_id": "api-create-item",
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-invoices",
+        "name": "Invoices",
+        "route": "/invoices",
+        "parent_id": "page-dashboard",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Loading invoices\u2026"
+          },
+          {
+            "kind": "empty",
+            "message": "No invoices yet."
+          },
+          {
+            "kind": "error",
+            "message": "Could not load the list. Retry."
+          },
+          {
+            "kind": "permission_denied",
+            "message": "Your role cannot view this list."
+          }
+        ],
+        "layout": {
+          "id": "page-invoices-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-invoices-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-invoices-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoices-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoices-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoices-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-invoices-stack",
+              "kind": "stack",
+              "props": {
+                "direction": "row",
+                "justify": "between"
+              },
+              "children": [
+                {
+                  "id": "page-invoices-heading",
+                  "kind": "heading",
+                  "props": {
+                    "text": "Invoices",
+                    "level": 1
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-invoices-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "New invoice",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoice-new",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": null,
+                  "direction": "column"
+                },
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-invoices-input",
+              "kind": "input",
+              "props": {
+                "label": "Search",
+                "name": "q",
+                "placeholder": "Search invoices"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-invoices-table",
+              "kind": "table",
+              "props": {
+                "columns": "id, number, status, total, issued_at, created_at"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": "api-list-invoice",
+              "entity_id": "ent-invoice",
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-invoice-new",
+        "name": "New invoice",
+        "route": "/invoices/new",
+        "parent_id": "page-invoices",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Saving\u2026"
+          },
+          {
+            "kind": "validation_error",
+            "message": "Fix the highlighted fields."
+          },
+          {
+            "kind": "error",
+            "message": "Saving failed; nothing was stored."
+          },
+          {
+            "kind": "success",
+            "message": "Invoice saved."
+          }
+        ],
+        "layout": {
+          "id": "page-invoice-new-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-invoice-new-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-invoice-new-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoice-new-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoice-new-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-invoice-new-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-invoice-new-heading",
+              "kind": "heading",
+              "props": {
+                "text": "New invoice",
+                "level": 1
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-invoice-new-form",
+              "kind": "form",
+              "props": {
+                "label": "New invoice"
+              },
+              "children": [
+                {
+                  "id": "page-invoice-new-input",
+                  "kind": "input",
+                  "props": {
+                    "label": "Number",
+                    "name": "number",
+                    "required": true,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-invoice",
+                    "entity_field": "number"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-invoice-new-input-2",
+                  "kind": "input",
+                  "props": {
+                    "label": "Status",
+                    "name": "status",
+                    "required": true,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-invoice",
+                    "entity_field": "status"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-invoice-new-input-3",
+                  "kind": "input",
+                  "props": {
+                    "label": "Total",
+                    "name": "total",
+                    "required": true,
+                    "type": "number"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-invoice",
+                    "entity_field": "total"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-invoice-new-input-4",
+                  "kind": "input",
+                  "props": {
+                    "label": "Issued at",
+                    "name": "issued_at",
+                    "required": true,
+                    "type": "date"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-invoice",
+                    "entity_field": "issued_at"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-invoice-new-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "Save",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "call_api",
+                    "target_page_id": null,
+                    "endpoint_id": "api-create-invoice",
+                    "implemented": false
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": 1,
+                  "direction": null
+                },
+                "md": null
+              },
+              "endpoint_id": "api-create-invoice",
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-branches",
+        "name": "Branches",
+        "route": "/branches",
+        "parent_id": "page-dashboard",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Loading branches\u2026"
+          },
+          {
+            "kind": "empty",
+            "message": "No branches yet."
+          },
+          {
+            "kind": "error",
+            "message": "Could not load the list. Retry."
+          },
+          {
+            "kind": "permission_denied",
+            "message": "Your role cannot view this list."
+          }
+        ],
+        "layout": {
+          "id": "page-branches-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-branches-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-branches-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branches-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branches-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branches-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-branches-stack",
+              "kind": "stack",
+              "props": {
+                "direction": "row",
+                "justify": "between"
+              },
+              "children": [
+                {
+                  "id": "page-branches-heading",
+                  "kind": "heading",
+                  "props": {
+                    "text": "Branches",
+                    "level": 1
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": null
+                },
+                {
+                  "id": "page-branches-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "New branch",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branch-new",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": null,
+                  "direction": "column"
+                },
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-branches-input",
+              "kind": "input",
+              "props": {
+                "label": "Search",
+                "name": "q",
+                "placeholder": "Search branches"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-branches-table",
+              "kind": "table",
+              "props": {
+                "columns": "id, name, address, created_at"
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": "api-list-branch",
+              "entity_id": "ent-branch",
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      },
+      {
+        "id": "page-branch-new",
+        "name": "New branch",
+        "route": "/branches/new",
+        "parent_id": "page-branches",
+        "description": "",
+        "requires_auth": true,
+        "roles": [
+          "admin"
+        ],
+        "states": [
+          {
+            "kind": "loading",
+            "message": "Saving\u2026"
+          },
+          {
+            "kind": "validation_error",
+            "message": "Fix the highlighted fields."
+          },
+          {
+            "kind": "error",
+            "message": "Saving failed; nothing was stored."
+          },
+          {
+            "kind": "success",
+            "message": "Branch saved."
+          }
+        ],
+        "layout": {
+          "id": "page-branch-new-container",
+          "kind": "container",
+          "props": {},
+          "children": [
+            {
+              "id": "page-branch-new-nav",
+              "kind": "nav",
+              "props": {
+                "label": "Main navigation"
+              },
+              "children": [
+                {
+                  "id": "page-branch-new-button-2",
+                  "kind": "button",
+                  "props": {
+                    "label": "Dashboard",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-dashboard",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branch-new-button-3",
+                  "kind": "button",
+                  "props": {
+                    "label": "Inventory item",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-items",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branch-new-button-4",
+                  "kind": "button",
+                  "props": {
+                    "label": "Invoice",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-invoices",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                },
+                {
+                  "id": "page-branch-new-button-5",
+                  "kind": "button",
+                  "props": {
+                    "label": "Branch",
+                    "variant": "ghost"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "navigate",
+                    "target_page_id": "page-branches",
+                    "endpoint_id": null,
+                    "implemented": true
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-branch-new-heading",
+              "kind": "heading",
+              "props": {
+                "text": "New branch",
+                "level": 1
+              },
+              "children": [],
+              "responsive": {
+                "sm": null,
+                "md": null
+              },
+              "endpoint_id": null,
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            },
+            {
+              "id": "page-branch-new-form",
+              "kind": "form",
+              "props": {
+                "label": "New branch"
+              },
+              "children": [
+                {
+                  "id": "page-branch-new-input",
+                  "kind": "input",
+                  "props": {
+                    "label": "Name",
+                    "name": "name",
+                    "required": true,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-branch",
+                    "entity_field": "name"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-branch-new-input-2",
+                  "kind": "input",
+                  "props": {
+                    "label": "Address",
+                    "name": "address",
+                    "required": false,
+                    "type": "text"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": {
+                    "entity_id": "ent-branch",
+                    "entity_field": "address"
+                  },
+                  "interaction": null
+                },
+                {
+                  "id": "page-branch-new-button",
+                  "kind": "button",
+                  "props": {
+                    "label": "Save",
+                    "variant": "primary"
+                  },
+                  "children": [],
+                  "responsive": {
+                    "sm": null,
+                    "md": null
+                  },
+                  "endpoint_id": null,
+                  "entity_id": null,
+                  "binding": null,
+                  "interaction": {
+                    "trigger": "click",
+                    "action": "call_api",
+                    "target_page_id": null,
+                    "endpoint_id": "api-create-branch",
+                    "implemented": false
+                  }
+                }
+              ],
+              "responsive": {
+                "sm": {
+                  "hidden": null,
+                  "columns": 1,
+                  "direction": null
+                },
+                "md": null
+              },
+              "endpoint_id": "api-create-branch",
+              "entity_id": null,
+              "binding": null,
+              "interaction": null
+            }
+          ],
+          "responsive": {
+            "sm": null,
+            "md": null
+          },
+          "endpoint_id": null,
+          "entity_id": null,
+          "binding": null,
+          "interaction": null
+        }
+      }
+    ],
+    "journeys": [
+      {
+        "id": "journey-item",
+        "name": "Manage Inventory items",
+        "role_id": "admin",
+        "steps": [
+          {
+            "page_id": "page-dashboard",
+            "action": "open navigation"
+          },
+          {
+            "page_id": "page-items",
+            "action": "review inventory items"
+          },
+          {
+            "page_id": "page-item-new",
+            "action": "create inventory item"
+          }
+        ]
+      },
+      {
+        "id": "journey-invoice",
+        "name": "Manage Invoices",
+        "role_id": "admin",
+        "steps": [
+          {
+            "page_id": "page-dashboard",
+            "action": "open navigation"
+          },
+          {
+            "page_id": "page-invoices",
+            "action": "review invoices"
+          },
+          {
+            "page_id": "page-invoice-new",
+            "action": "create invoice"
+          }
+        ]
+      },
+      {
+        "id": "journey-branch",
+        "name": "Manage Branches",
+        "role_id": "admin",
+        "steps": [
+          {
+            "page_id": "page-dashboard",
+            "action": "open navigation"
+          },
+          {
+            "page_id": "page-branches",
+            "action": "review branches"
+          },
+          {
+            "page_id": "page-branch-new",
+            "action": "create branch"
+          }
+        ]
+      }
+    ]
+  },
+  "prompt_settings": {
+    "mode": "complete_app",
+    "preset": "claude_code",
+    "sections": [
+      "overview",
+      "requirements",
+      "journeys",
+      "components",
+      "connections",
+      "data",
+      "api",
+      "security",
+      "deployment",
+      "design",
+      "pages",
+      "testing",
+      "decisions",
+      "open_questions"
+    ],
+    "page_id": null
+  }
+}
