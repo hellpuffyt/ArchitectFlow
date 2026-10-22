@@ -111,6 +111,22 @@ function NodeInspector({ node, onDelete }: { node: ArchNode; onDelete: () => voi
           </div>
         </div>
       </div>
+      {(() => {
+        const links = (doc?.edges ?? []).filter((e) => e.source === node.id || e.target === node.id);
+        const name = (id: string) => doc?.nodes.find((n) => n.id === id)?.label ?? id;
+        return links.length > 0 ? (
+          <div>
+            <p className="mb-1 text-xs font-medium text-muted">Connections ({links.length})</p>
+            <ul className="space-y-0.5" aria-label="Connections">
+              {links.map((e) => (
+                <li key={e.id}><button type="button" onClick={() => setSelection({ nodes: [], edges: [e.id] })}
+                  className="w-full truncate rounded px-1.5 py-0.5 text-left text-xs text-muted hover:bg-panel-2 hover:text-fg">
+                  {name(e.source)} → {name(e.target)} · {e.protocol}{e.label ? ` · ${e.label}` : ""}</button></li>
+              ))}
+            </ul>
+          </div>
+        ) : null;
+      })()}
       <div className="flex gap-1.5">
         <Select aria-label="Connect to" value={target} onChange={(e) => setTarget(e.target.value)}>
           <option value="">Connect to…</option>

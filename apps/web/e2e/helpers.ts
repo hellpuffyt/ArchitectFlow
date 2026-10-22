@@ -44,7 +44,9 @@ export async function generateSample(page: Page) {
   await expect(review).toBeVisible();
   await expect(review.getByText("Example mode", { exact: true })).toBeVisible();
   await expect(review.getByText(/Example mode — no AI provider configured/)).toBeVisible();
+  const before = Number((await page.getByTestId("head-revision").textContent())?.replace("r", ""));
   await review.getByRole("button", { name: "Apply changes" }).click();
+  await expect(page.getByTestId("head-revision")).toHaveText(`r${before + 1}`);
   await expect(page.getByTestId("node-core-api")).toBeVisible();
   await waitSaved(page);
 }
