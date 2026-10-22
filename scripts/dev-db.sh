@@ -33,8 +33,14 @@ start() {
   if "$BIN/pg_ctl" -D "$DATA" status >/dev/null 2>&1; then
     echo "postgres already running on 127.0.0.1:$PORT"
   else
-    "$BIN/pg_ctl" -D "$DATA" -l "$ROOT/.dev/postgres.log" -w \
-      -o "-p $PORT -k $ROOT/.dev -c listen_addresses=127.0.0.1" start >/dev/null
+    # TCP only: no Unix-domain socket, so long checkout paths cannot exceed the
+    # ~103-byte socket path limit (every client here connects to 127.0.0.1).
+    if ! "$BIN/pg_ctl" -D "$DATA" -l "$ROOT/.dev/postgres.log" -w \
+      -o "-p $PORT -c listen_addresses=127.0.0.1 -c unix_socket_directories=''" start >/dev/null; then
+      echo "error: PostgreSQL failed to start on 127.0.0.1:$PORT. Last log lines:" >&2
+      tail -n 20 "$ROOT/.dev/postgres.log" >&2 || true
+      exit 1
+    fi
     echo "postgres started on 127.0.0.1:$PORT"
   fi
   psql_admin -c "SELECT 1 FROM pg_database WHERE datname='architectflow'" | grep -q 1 \
