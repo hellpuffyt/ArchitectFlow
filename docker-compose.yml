@@ -1,5 +1,5 @@
-# Local/self-hosted stack. Validated in CI by `docker compose config` and image builds only;
-# the author's machine has no Docker. Put a TLS-terminating reverse proxy in front for production.
+# Local/self-hosted stack. Built and run end-to-end on arm64 (see docs/PRODUCTION_READINESS.md);
+# amd64 is built in CI. Put a TLS-terminating reverse proxy in front for production.
 services:
   db:
     image: postgres:17

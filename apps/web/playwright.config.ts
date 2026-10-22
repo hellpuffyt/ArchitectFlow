@@ -4,6 +4,9 @@ import { defineConfig, devices } from "@playwright/test";
 // (scripts/e2e-api.sh). Nothing is mocked.
 const API_PORT = process.env.ARCHITECTFLOW_E2E_API_PORT ?? "8100";
 const WEB_PORT = process.env.ARCHITECTFLOW_E2E_WEB_PORT ?? "3100";
+// Set to test an already-running deployment (e.g. the Docker Compose stack) instead of
+// starting a local API + web server.
+const EXTERNAL = process.env.ARCHITECTFLOW_E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -14,13 +17,13 @@ export default defineConfig({
   retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: `http://127.0.0.1:${WEB_PORT}`,
+    baseURL: EXTERNAL ?? `http://127.0.0.1:${WEB_PORT}`,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     permissions: ["clipboard-read", "clipboard-write"],
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 900 } } }],
-  webServer: [
+  webServer: EXTERNAL ? [] : [
     {
       command: "bash ../../scripts/e2e-api.sh",
       url: `http://127.0.0.1:${API_PORT}/api/health`,

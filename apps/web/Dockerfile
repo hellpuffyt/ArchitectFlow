@@ -1,4 +1,4 @@
-# ArchitectFlow web. Validated in CI (docker build job); not built on the author's machine.
+# ArchitectFlow web image (built and run with Docker Compose on arm64; amd64 via CI).
 FROM node:24-slim AS build
 WORKDIR /app
 ARG ARCHITECTFLOW_API_ORIGIN=http://api:8000
