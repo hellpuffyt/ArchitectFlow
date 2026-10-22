@@ -20,4 +20,5 @@ Settings are read from environment variables (see `apps/api/architectflow/config
 | `ARCHITECTFLOW_PG_PORT`, `PG_BIN` (scripts) | `54329`, auto | Port and binaries for `scripts/dev-db.sh`. |
 | `ARCHITECTFLOW_TEST_ADMIN_URL` (tests) | dev cluster | Role allowed to create/drop test databases. |
 | `ARCHITECTFLOW_E2E_DATABASE_URL` (E2E) | – | Use an existing empty database instead of the dev cluster (CI). |
+| `ARCHITECTFLOW_E2E_BASE_URL` (E2E) | – | Test an already-running deployment (e.g. `http://localhost:3000` for Compose) instead of starting servers. |
 | `ARCHITECTFLOW_E2E_STOP_DB=1` (E2E) | – | Enables the spec that stops and restarts the local cluster. |

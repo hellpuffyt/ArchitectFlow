@@ -133,7 +133,7 @@ Source: ArchitectFlow design revision 4. Mode: backend_api. Labels: [CONFIRMED] 
   deletion, audit events.
 
 **Experimental:** real LLM providers (request/response handling tested against local mock HTTP
-servers only); Docker images and Compose file (built in CI only).
+servers only); Docker images and Compose file (built and run end-to-end on arm64 only).
 
 **Planned:** team collaboration and roles per project, real-time co-editing, OIDC sign-in, a
 background job queue for exports, multi-process rate limiting (see [roadmap](#roadmap)).

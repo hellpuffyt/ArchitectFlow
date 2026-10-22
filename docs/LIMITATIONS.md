@@ -16,7 +16,7 @@
   journeys and edges, not from real call traces. Deployment diagrams use groups and replicas only.
 - **Undo/redo** is per browser tab and in memory; version history is the durable record.
 - **Revisions** grow without pruning; each save stores the full document (≤ 2 MB).
-- **Docker/compose** are built in CI only; not run end-to-end on the author's machine (no Docker).
+- **Docker:** verified on arm64 only; the web image is 1.16 GB (no Next.js standalone output yet).
 - **Email:** no verification, password reset or 2FA.
 - **Accessibility:** keyboard paths exist for the main flows (tested: sign-in, workspace navigation,
   canvas shortcuts, connection list); no full screen-reader audit was performed.

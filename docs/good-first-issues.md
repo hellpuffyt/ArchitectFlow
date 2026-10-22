@@ -8,4 +8,6 @@
    architecture canvas (`html-to-image`).
 4. **Validation rule:** warn when an endpoint with `paginated: true` has `response_is_list: false`
    (`validation/rules.py` + a test in `tests/test_validation.py`).
-5. **Password change endpoint** (`routes/auth.py`) with argon2 re-hash and a pytest case.
+5. **Smaller web image:** enable Next.js `output: "standalone"` and copy only `.next/standalone` +
+   `.next/static` into the runtime stage (currently 1.16 GB). Verify with the compose E2E run.
+6. **Password change endpoint** (`routes/auth.py`) with argon2 re-hash and a pytest case.

@@ -2,8 +2,8 @@
 
 **Classification: Partially Verified.** Everything in the acceptance lists below is exercised by
 automated tests that pass on the author's machine, including from a clean clone. It is *not*
-classified Production-Ready because: CI has not yet run on GitHub; the Docker images and Compose
-stack have not been built or run by the author (no Docker locally); real LLM providers are tested
+classified Production-Ready because: CI has not yet run on GitHub; the Docker images were built
+and run on arm64 only (amd64 unverified locally); real LLM providers are tested
 only against local mock HTTP servers; and there has been no external security review, load test or
 screen-reader audit. Independent verification by the maintainer is pending.
 
@@ -56,7 +56,7 @@ in the clean clone (see "Repeat run" below).
 | Secret scan of every commit (tokens, keys, local paths) | no matches |
 | OpenAPI export validated against 3.1; DDL export executed on PostgreSQL | pass (`tests/test_exports.py`) |
 | CI (GitHub Actions) | **not yet run** |
-| Docker build / compose | **not yet run** (CI job defined) |
+| Docker build / compose | **built and run locally on arm64** (see Docker section); CI not yet run |
 
 ## Acceptance checklist — original Project 7 list
 
@@ -121,7 +121,29 @@ in the clean clone (see "Repeat run" below).
 | 17 | Import validation | `workflow.spec.ts › (8)` | pass |
 | 18 | DB / AI provider unavailable | `test_failures.py` (missing key 503, unreachable 502, timeout 504, 429, 401, 500, bad JSON, invalid ops 422, DB down 503 — real sockets/servers); E2E PostgreSQL-down spec (real cluster stop) | pass |
 | 19 | Clean-checkout install | clean-clone run above | pass (local clone) |
-| 20 | Production build + deployment workflow | `next build` passes; Docker/Compose defined | **unverified for Docker**: Docker is not installed on the verification machine, so the images and `docker compose up` were never built or run; a CI job is defined but CI has not run |
+| 20 | Production build + deployment workflow | `next build`; Docker images built; `docker compose up` + core journey 3/3 against the containers; restart persistence; `down -v` clean | pass on **arm64** (Colima); amd64 images unverified locally; CI not yet run |
+
+## Docker / Compose verification (2026-10-22)
+Environment: Colima on macOS (Docker Engine 29.5.2, Ubuntu 24.04 VM, kernel 6.8, **arm64**,
+2 CPUs, 4 GB RAM), Docker Compose 5.6.1, buildx 0.38.1.
+
+| Step | Result |
+|---|---|
+| `docker compose build api`, then `web` (BuildKit, one at a time due to the 4 GB VM) | both built; **api 667 MB, web 1.16 GB** (arm64) |
+| `docker compose up -d`, first attempt | **defect found:** the API exited because `uv run` could not create `/home/app/.cache/uv` (the system user has no home directory). Fixed in `240ebdf` by running the image's virtualenv directly |
+| `docker compose up -d` after the fix | db healthy, API healthy in 9 s; `alembic upgrade head` ran in the container (`alembic_version = 0001`) |
+| `ARCHITECTFLOW_E2E_BASE_URL=http://localhost:3000 npx playwright test e2e/core-journey.spec.ts --repeat-each=3 --workers=1` against the compose stack | **3 passed (41.6 s)**, with `Secure` cookies on localhost |
+| `docker compose restart` | data persisted (6 users and 30 revisions both before and after) |
+| `docker compose down -v` | 0 ArchitectFlow containers, volumes or networks left (built images kept) |
+| Image hygiene | non-root users (`app` uid 10001, `node` uid 1000); no `.env*` files in the image filesystem; `docker history` shows only upstream base-image layers; configuration comes from runtime environment variables |
+
+Not verified:
+- **amd64 images:** this machine is arm64; CI builds amd64 once it runs.
+- **The TLS reverse proxy.**
+- **Image vulnerability scanning.**
+
+The web image is large (1.16 GB) because its runtime stage installs all production `node_modules`.
+Next.js `output: "standalone"` is a known improvement (listed in good-first-issues).
 
 ## Bugs found and fixed (each with a regression test)
 - A modal left a hidden previous route inert → `regression: a modal opened before navigation…`
@@ -131,6 +153,7 @@ in the clean clone (see "Repeat run" below).
   failure) → `regression: status shows Saving…`. The regression test fails without the fix.
 - The dev PostgreSQL socket exceeded the path limit in deep clones → `scripts/test-dev-db.sh`. The
   test fails without the fix.
+- The API container exited at start because `uv run` needed a home-directory cache (found by running the compose stack; verified by the compose E2E run above)
 - The default light primary color, the default dark primary, and one preset failed WCAG AA → `test_every_preset_meets_wcag_aa`, `test_default_theme_meets_aa`
 - "PostgreSQL" was inferred as a blog-post entity → assertion in `test_generate_review_apply_persists`
 - The "developer tool" design request was a no-op → `test_example_design_vocabulary`
@@ -144,7 +167,7 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 - Single-owner projects only.
 
 ## Explicitly unverified (with reason)
-- **Docker images / Compose:** Docker is not installed on the verification machine.
+- **amd64 Docker images:** only arm64 was built and run (Colima on Apple silicon).
 - **Live OpenAI-compatible / Anthropic providers:** no provider credentials exist. The HTTP
   handling is tested against local servers (unreachable, timeout, 429, 401, 500, malformed
   output), but not against the real services.
@@ -152,7 +175,7 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 
 ## Needed for further verification
 - GitHub Actions run (Ubuntu): API, web, E2E with a Postgres service, the deep-path script and Docker builds.
-- A Docker host to run `docker compose up` end to end.
+- An amd64 Docker host (or CI) to build and run the images on amd64.
 - An API key for each real provider to run a live smoke test.
 - An external security review and a screen-reader audit.
 
