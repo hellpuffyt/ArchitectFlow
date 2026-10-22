@@ -3,7 +3,7 @@
 **Classification: Partially Verified.** Everything in the acceptance lists below is exercised by
 automated tests that pass on the author's machine, including from a clean clone. It is *not*
 classified Production-Ready because: CI has not yet run on GitHub; the Docker images were built
-and run on arm64 only (amd64 unverified locally); real LLM providers are tested
+and run on arm64, and on amd64 only under emulation; real LLM providers are tested
 only against local mock HTTP servers; and there has been no external security review, load test or
 screen-reader audit. Independent verification by the maintainer is pending.
 
@@ -121,7 +121,7 @@ in the clean clone (see "Repeat run" below).
 | 17 | Import validation | `workflow.spec.ts › (8)` | pass |
 | 18 | DB / AI provider unavailable | `test_failures.py` (missing key 503, unreachable 502, timeout 504, 429, 401, 500, bad JSON, invalid ops 422, DB down 503 — real sockets/servers); E2E PostgreSQL-down spec (real cluster stop) | pass |
 | 19 | Clean-checkout install | clean-clone run above | pass (local clone) |
-| 20 | Production build + deployment workflow | `next build`; Docker images built; `docker compose up` + core journey 3/3 against the containers; restart persistence; `down -v` clean | pass on **arm64** (Colima); amd64 images unverified locally; CI not yet run |
+| 20 | Production build + deployment workflow | `next build`; Docker images built; `docker compose up` + core journey 3/3 against the containers; restart persistence; `down -v` clean | pass on **arm64** (Colima); amd64 built and core journey 1/1 under QEMU emulation; CI not yet run |
 
 ## Docker / Compose verification (2026-10-22)
 Environment: Colima on macOS (Docker Engine 29.5.2, Ubuntu 24.04 VM, kernel 6.8, **arm64**,
@@ -171,6 +171,19 @@ Re-verification of the rebuilt images:
 - Local-mode Playwright: 20 passed, 2 opt-in skipped.
 - Vitest 46/46; lint and typecheck clean.
 
+## amd64 images (QEMU emulation on the arm64 Colima VM)
+- `docker run --privileged --rm tonistiigi/binfmt --install amd64`, then
+  `docker buildx build --platform linux/amd64 --load` for each image, capped at 25 min per image.
+  - api built in **270 s**: `sha256:cffa6c120f411a7572c4866cbf372d3202ea97f8693656529311b54e93862fe0`
+  - web built in **571 s**: `sha256:30c72669f28c02d8c717a9c9dfa84c45c31a22d3aea09a6de94e1e57b2626007`
+  - No out-of-memory errors in the 4 GB VM.
+- Ran both images as a Compose stack under emulation: containers report `x86_64`, the stack was
+  healthy in 30 s, and the **core journey passed 1/1** against it.
+- Trivy, amd64: api CRITICAL 0 / HIGH 44 / fixable 0 / secrets 0; web CRITICAL 0 / HIGH 43 /
+  fixable 0 / secrets 0.
+- Caveat: emulation proves the images build and run correctly. It says nothing about native amd64
+  performance.
+
 ## Bugs found and fixed (each with a regression test)
 - A modal left a hidden previous route inert → `regression: a modal opened before navigation…`
 - A stale native `close` event closed a quickly reopened dialog → `edges` spec (cancel, then reopen)
@@ -193,7 +206,7 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 - Single-owner projects only.
 
 ## Explicitly unverified (with reason)
-- **amd64 Docker images:** only arm64 was built and run (Colima on Apple silicon).
+- **Native amd64 hardware:** amd64 images were built and run under QEMU emulation only.
 - **Live OpenAI-compatible / Anthropic providers:** no provider credentials exist. The HTTP
   handling is tested against local servers (unreachable, timeout, 429, 401, 500, malformed
   output), but not against the real services.
@@ -201,7 +214,7 @@ See [LIMITATIONS.md](LIMITATIONS.md). Key risks:
 
 ## Needed for further verification
 - GitHub Actions run (Ubuntu): API, web, E2E with a Postgres service, the deep-path script and Docker builds.
-- An amd64 Docker host (or CI) to build and run the images on amd64.
+- A native amd64 Docker host (or CI) for performance-representative runs.
 - An API key for each real provider to run a live smoke test.
 - An external security review and a screen-reader audit.
 

@@ -7,7 +7,7 @@ the API and database as-is.
 | Option | Status |
 |---|---|
 | `scripts/dev.sh` on one machine | **Verified** locally (macOS, PostgreSQL 17, Node 24, Python 3.12). |
-| `docker compose up` on a VM behind a TLS reverse proxy (Caddy/nginx) | Compose stack **built and run on arm64** (Colima): core-journey E2E 3/3 against the containers. amd64 and the TLS proxy are untested. |
+| `docker compose up` on a VM behind a TLS reverse proxy (Caddy/nginx) | Compose stack **built and run on arm64** (Colima): core-journey E2E 3/3 against the containers. amd64 verified under QEMU emulation (core journey 1/1); the TLS proxy example is described below. |
 | Managed PostgreSQL + container host (Fly.io, Render, Railway…) for the API and web | **Untested.** Same images; set `ARCHITECTFLOW_DATABASE_URL` and build web with `ARCHITECTFLOW_API_ORIGIN`. |
 
 ## Docker Compose
