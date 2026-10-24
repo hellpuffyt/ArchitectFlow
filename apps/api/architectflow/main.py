@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import DataError, OperationalError, SQLAlchemyError
@@ -12,6 +13,9 @@ from sqlalchemy.exc import DataError, OperationalError, SQLAlchemyError
 from . import __version__
 from .config import get_settings
 from .routes import account, ai, auth, design, exports, projects, prompts, share
+
+if TYPE_CHECKING:
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 
 def create_app() -> FastAPI:
@@ -23,6 +27,9 @@ def create_app() -> FastAPI:
         redoc_url=None,
     )
     max_bytes = get_settings().max_request_bytes
+    # Bounds bodies while they are read, including chunked ones without Content-Length.
+    # Added first so it sits inside limit_body and raises within the request's own task.
+    app.add_middleware(BodyLimit, max_bytes=max_bytes)
 
     @app.middleware("http")
     async def limit_body(
@@ -88,6 +95,31 @@ def create_app() -> FastAPI:
     for module in (auth, projects, ai, prompts, design, exports, share, account):
         app.include_router(module.router)
     return app
+
+
+class BodyLimit:
+    """Reject request bodies larger than ``max_bytes`` while they are read (413)."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        received = 0
+
+        async def limited_receive() -> Message:
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > self.max_bytes:
+                    raise HTTPException(413, f"Request body exceeds {self.max_bytes} bytes.")
+            return message
+
+        await self.app(scope, limited_receive, send)
 
 
 def _printable(value: object) -> str | int:

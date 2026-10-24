@@ -170,8 +170,8 @@ The UI tells users when designs are sent to an external provider.
 
 ```bash
 scripts/dev-db.sh start
-(cd apps/api && uv run pytest)                       # 115 tests, real PostgreSQL
-(cd apps/web && npm test)                             # 46 Vitest tests
+(cd apps/api && uv run pytest)                       # 172 tests, real PostgreSQL
+(cd apps/web && npm test)                             # 48 Vitest tests
 (cd apps/web && npx playwright test)                  # 20 browser specs + 2 opt-in, real API + PostgreSQL
 ARCHITECTFLOW_E2E_STOP_DB=1 npx playwright test -g "PostgreSQL down"   # stops/starts the local cluster
 bash scripts/test-dev-db.sh                           # dev cluster from a deep checkout path
@@ -198,6 +198,7 @@ The API needs a long-running Python process and PostgreSQL, so a static/serverle
 |---|---|
 | `PostgreSQL server binaries not found` | Install PostgreSQL 15+ or set `PG_BIN` to its `bin` directory. |
 | `PostgreSQL failed to start … Last log lines` | Read the printed log; usually port 54329 is taken — set `ARCHITECTFLOW_PG_PORT`. |
+| `EADDRINUSE` on `:3000` or `:8000` from `scripts/dev.sh` | Another process holds the port — set `ARCHITECTFLOW_WEB_PORT` / `ARCHITECTFLOW_API_PORT`. |
 | Sign-in works but every write says *CSRF token* | Reload the page (the token is per session). |
 | Login cookie not kept on `http://localhost` | Set `ARCHITECTFLOW_SECURE_COOKIES=false` for local plain HTTP (`scripts/dev.sh` does). |
 | "AI provider … configured but ARCHITECTFLOW_AI_API_KEY is not set" | Set the key or use `ARCHITECTFLOW_AI_PROVIDER=example`. |
