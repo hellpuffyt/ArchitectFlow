@@ -17,6 +17,9 @@ updates:
       # typescript-eslint 8.x supports typescript <6.1; revisit when it does.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # eslint-config-next 16.4's plugins (import, jsx-a11y, react) declare eslint <=9.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
