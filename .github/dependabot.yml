@@ -6,6 +6,17 @@ updates:
   - package-ecosystem: npm
     directory: /apps/web
     schedule: { interval: weekly }
+    groups:
+      # react-dom requires the exact same react version; bump them together.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+    ignore:
+      # Types must match the Node 24 runtime used in CI and the Dockerfile.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # typescript-eslint 8.x supports typescript <6.1; revisit when it does.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
