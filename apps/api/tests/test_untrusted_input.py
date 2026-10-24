@@ -7,11 +7,13 @@ Also covers the "never silently overwrite" contract for import and restore.
 from __future__ import annotations
 
 import copy
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
 
+from architectflow.config import get_settings
 from architectflow.validation import DocumentInvalid, parse_document
 
 from .conftest import Api
@@ -218,3 +220,35 @@ def test_archived_project_cannot_be_changed_by_restore(api: Api, email: str) -> 
     r = api.post(f"/api/projects/{pid}/revisions/1/restore", json={"base_revision": head})
     assert r.status_code == 409
     assert api.get(f"/api/projects/{pid}").json()["head_revision"] == head
+
+
+def _chunks(total: int, size: int = 64 * 1024) -> Iterator[bytes]:
+    yield b'{"email":"a@example.com","password":"'
+    sent = 0
+    while sent < total:
+        yield b"x" * size
+        sent += size
+    yield b'"}'
+
+
+def test_oversized_bodies_are_rejected_with_and_without_content_length(api: Api) -> None:
+    limit = get_settings().max_request_bytes
+    body = b"".join(_chunks(limit + 1))
+    sized = api.c.post(
+        "/api/auth/signup", content=body, headers={"content-type": "application/json"}
+    )
+    assert sized.status_code == 413
+    # A chunked body carries no Content-Length; it must still be bounded while it is read.
+    chunked = api.c.post(
+        "/api/auth/signup",
+        content=_chunks(limit + 1),
+        headers={"content-type": "application/json"},
+    )
+    assert chunked.status_code == 413, chunked.text
+    assert "exceeds" in chunked.json()["detail"]
+    small = api.c.post(
+        "/api/auth/signup",
+        content=_chunks(1000),
+        headers={"content-type": "application/json"},
+    )
+    assert small.status_code == 422  # read in full and validated (password too long)
