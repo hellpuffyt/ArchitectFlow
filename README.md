@@ -171,7 +171,7 @@ The UI tells users when designs are sent to an external provider.
 ```bash
 scripts/dev-db.sh start
 (cd apps/api && uv run pytest)                       # 172 tests, real PostgreSQL
-(cd apps/web && npm test)                             # 46 Vitest tests
+(cd apps/web && npm test)                             # 48 Vitest tests
 (cd apps/web && npx playwright test)                  # 20 browser specs + 2 opt-in, real API + PostgreSQL
 ARCHITECTFLOW_E2E_STOP_DB=1 npx playwright test -g "PostgreSQL down"   # stops/starts the local cluster
 bash scripts/test-dev-db.sh                           # dev cluster from a deep checkout path
