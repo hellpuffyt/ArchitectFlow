@@ -18,6 +18,7 @@ Settings are read from environment variables (see `apps/api/architectflow/config
 | `ARCHITECTFLOW_MAX_REQUEST_BYTES` | `2000000` | Larger bodies get 413. |
 | `ARCHITECTFLOW_API_ORIGIN` (web, **build time**) | `http://127.0.0.1:8000` | Where the Next.js server proxies `/api/*`. |
 | `ARCHITECTFLOW_PG_PORT`, `PG_BIN` (scripts) | `54329`, auto | Port and binaries for `scripts/dev-db.sh`. |
+| `ARCHITECTFLOW_API_PORT`, `ARCHITECTFLOW_WEB_PORT` (scripts) | `8000`, `3000` | Ports `scripts/dev.sh` serves the API and web app on. |
 | `ARCHITECTFLOW_TEST_ADMIN_URL` (tests) | dev cluster | Role allowed to create/drop test databases. |
 | `ARCHITECTFLOW_E2E_DATABASE_URL` (E2E) | – | Use an existing empty database instead of the dev cluster (CI). |
 | `ARCHITECTFLOW_E2E_BASE_URL` (E2E) | – | Test an already-running deployment (e.g. `http://localhost:3000` for Compose) instead of starting servers. |
