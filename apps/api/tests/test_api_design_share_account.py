@@ -20,6 +20,9 @@ def test_pages_and_design_requests_go_through_review(api: Api, email: str) -> No
     head = generate_and_apply(api, pid)["head_revision"]
     cs = api.post(f"/api/projects/{pid}/ai/pages", json={"base_revision": head}).json()
     assert cs["kind"] == "pages" and cs["provider"] == "page-generator"
+    # Deterministic in every mode; it must not claim no provider is configured.
+    assert cs["mode"] == "example"
+    assert cs["explanation"].startswith("Deterministic page generator — no AI provider is called")
     assert cs["status"] == "pending"
     assert api.get(f"/api/projects/{pid}").json()["document"]["design"]["pages"] == []
     applied = apply_cs(api, pid, cs)
