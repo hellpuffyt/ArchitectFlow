@@ -17,6 +17,8 @@ from ..design.presets import preset_theme
 from ..schema import ArchitectureDocument, Endpoint, Entity, Theme
 from .base import EXAMPLE_MODE_NOTICE, ProviderResult
 
+PAGE_GENERATOR_NOTICE = "Deterministic page generator — no AI provider is called"
+
 COLORS = {
     "emerald": "#047857",
     "green": "#15803d",
@@ -450,7 +452,9 @@ def generate_pages(doc: ArchitectureDocument) -> ProviderResult:
     for j in journeys:
         ops.append({"op": "put_ui_journey", "journey": j})
     explanation = (
-        f"{EXAMPLE_MODE_NOTICE}. Pages derived from your saved design: "
+        # Page generation never calls a provider, so it must not claim (in live mode)
+        # that no provider is configured.
+        f"{PAGE_GENERATOR_NOTICE}. Pages derived from your saved design: "
         f"{len(pages)} pages from {len(page_specs)} list endpoint(s), "
         f"{'a sign-in page (auth component present), ' if has_auth else ''}"
         f"navigation, forms bound to request fields, and {len(journeys)} journey(s)."
