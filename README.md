@@ -2,15 +2,35 @@
 
 ![CI](https://github.com/hellpuffyt/ArchitectFlow/actions/workflows/ci.yml/badge.svg)
 
-**Design a software system — architecture, data, API and UI — as structured, versioned data,
+**Design a software system (architecture, data, API and UI) as structured, versioned data,
 validate it with deterministic rules, and generate an implementation prompt from the exact saved
 revision.**
 
-> Status: **experimental 0.1.0 — not production-ready.** It runs fully offline in a clearly
+> Status: **experimental 0.1.0, not production-ready.** It runs fully offline in a clearly
 > labeled *example mode* (deterministic templates, not AI). Real LLM providers are supported
 > but have only been tested against local mock servers; see [Limitations](#limitations).
 
-![Architecture canvas for the jewellery SaaS walkthrough](docs/screenshots/architecture.jpg)
+[Live demo ↗](https://architectflow-omega.vercel.app) · [Case study ↗](https://hellpuff.dev/work/architectflow)
+
+The live demo runs in example mode on Vercel with a Neon PostgreSQL database. Sign-up is open; don't put anything private in it.
+
+## Screenshots
+
+Real screenshots of a production build (`next build` + `next start`, API on a local PostgreSQL 17 cluster, example
+mode, synthetic `demo@example.com` account) after running the jewellery SaaS walkthrough below.
+
+<img src="docs/screenshots/graph-editor-core-api.webp" width="100%" alt="ArchitectFlow graph editor: component palette, canvas with API gateway, Auth service, Core API, Secrets manager, Sync service and Primary database, and the Core API inspector">
+
+The System architecture workspace: the generated graph with protocol-labelled connections, Core API selected in the
+inspector.
+
+<img src="docs/screenshots/validation-findings.webp" width="100%" alt="Validation findings list: two form-field warnings and one accessibility recommendation, each with evidence, fix and location">
+
+Validation findings for the saved revision, each with the evidence it was derived from, a fix and the JSON location.
+
+<img src="docs/screenshots/project-overview-mobile.webp" width="300" alt="Project overview on a 390 px phone screen with the workspace switcher as a dropdown and component, requirement, entity and endpoint counts">
+
+The project overview at phone width (390 px). The canvas editor itself is designed for screens of 1024 px or more.
 
 ## Why
 
@@ -20,7 +40,7 @@ document per project (requirements, components, connections, entities, endpoints
 pages) and makes every change explicit:
 
 - **AI proposals are change sets.** They are validated, shown as a diff with validation findings,
-  and applied only when you click *Apply* — a large replacement needs extra confirmation.
+  and applied only when you click *Apply*. A large replacement needs extra confirmation.
 - **Validation is deterministic.** Findings quote the evidence from your saved design and say how
   to fix it. Definite schema errors are separated from recommendations; nothing is labeled a
   "confirmed vulnerability".
@@ -77,7 +97,7 @@ warning ui-field-without-destination   page Sign in (/login): input 'Email' in f
 info    missing-accessibility-requirement 8 page(s), no accessibility requirement
 ```
 
-(The generated sign-in form really has no API endpoint — the design has an auth service but no
+(The generated sign-in form really has no API endpoint: the design has an auth service but no
 login endpoint yet.) Start of the generated *Backend & API* prompt:
 
 ```text
@@ -149,7 +169,7 @@ flowchart LR
   A --> V[Deterministic validator<br/>+ integrity gate]
 ```
 
-Every change — manual save, import, AI change set, restore — goes through the same integrity gate
+Every change (manual save, import, AI change set, restore) goes through the same integrity gate
 and becomes a new immutable revision. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Configuration
@@ -177,6 +197,17 @@ ARCHITECTFLOW_E2E_STOP_DB=1 npx playwright test -g "PostgreSQL down"   # stops/s
 bash scripts/test-dev-db.sh                           # dev cluster from a deep checkout path
 ```
 
+The commands above assume the default cluster port 54329. If you started it on another port with
+`ARCHITECTFLOW_PG_PORT`, keep that variable set for Playwright (it starts the API through `scripts/e2e-api.sh`) and point
+the API tests at it explicitly:
+
+```bash
+ARCHITECTFLOW_TEST_ADMIN_URL=postgresql+psycopg://architectflow@127.0.0.1:54392/postgres uv run pytest
+```
+
+CI also runs `ruff format --check`, `ruff check`, `mypy architectflow` and `pip-audit` in `apps/api`, and
+`npm run lint`, `npm run typecheck`, `npx next build` and `npm audit --omit=dev` in `apps/web`.
+
 Evidence, exact commands and results per acceptance item: [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
 
 ## Security model
@@ -188,17 +219,19 @@ and report vulnerabilities privately per [SECURITY.md](SECURITY.md).
 
 ## Deployment
 
-The API needs a long-running Python process and PostgreSQL, so a static/serverless host alone
-(e.g. Vercel) cannot run the whole app. Options and their verification status are in
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+ArchitectFlow needs three things: PostgreSQL, the FastAPI API and the Next.js web app. The live
+demo runs them as two Vercel projects (`apps/web` and `apps/api`) with a Neon database; Docker
+Compose behind a TLS proxy also works. Setup steps, the serverless rate-limit caveat and what has
+been verified for each option are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | `PostgreSQL server binaries not found` | Install PostgreSQL 15+ or set `PG_BIN` to its `bin` directory. |
-| `PostgreSQL failed to start … Last log lines` | Read the printed log; usually port 54329 is taken — set `ARCHITECTFLOW_PG_PORT`. |
-| `EADDRINUSE` on `:3000` or `:8000` from `scripts/dev.sh` | Another process holds the port — set `ARCHITECTFLOW_WEB_PORT` / `ARCHITECTFLOW_API_PORT`. |
+| `PostgreSQL failed to start … Last log lines` | Read the printed log; usually port 54329 is taken; set `ARCHITECTFLOW_PG_PORT`. |
+| `EADDRINUSE` on `:3000` or `:8000` from `scripts/dev.sh` | Another process holds the port; set `ARCHITECTFLOW_WEB_PORT` / `ARCHITECTFLOW_API_PORT`. |
+| API tests fail with `PostgreSQL is not reachable at …:54329` after changing `ARCHITECTFLOW_PG_PORT` | The API tests read `ARCHITECTFLOW_TEST_ADMIN_URL`, not the port variable; see [Testing](#testing). |
 | Sign-in works but every write says *CSRF token* | Reload the page (the token is per session). |
 | Login cookie not kept on `http://localhost` | Set `ARCHITECTFLOW_SECURE_COOKIES=false` for local plain HTTP (`scripts/dev.sh` does). |
 | "AI provider … configured but ARCHITECTFLOW_AI_API_KEY is not set" | Set the key or use `ARCHITECTFLOW_AI_PROVIDER=example`. |
