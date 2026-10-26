@@ -1,13 +1,14 @@
 # Deployment
 
 ArchitectFlow is three processes: PostgreSQL, the FastAPI API (long-running Python) and the
-Next.js server. A static or serverless host alone (e.g. Vercel) can host the web app but **not**
-the API and database as-is.
+Next.js server. On Vercel the web app and the API run as two projects, with PostgreSQL from a
+managed provider (see [Vercel](#vercel)).
 
 | Option | Status |
 |---|---|
 | `scripts/dev.sh` on one machine | **Verified** locally (macOS, PostgreSQL 17, Node 24, Python 3.12). |
 | `docker compose up` on a VM behind a TLS reverse proxy (Caddy/nginx) | Compose stack **built and run on arm64** (Colima): core-journey E2E 3/3 against the containers. amd64 verified under QEMU emulation (core journey 1/1); the TLS proxy example is described below. |
+| Vercel (two projects) + Neon PostgreSQL | **Deployed** 2026-10-26: the core-journey, architecture and authz E2E specs (7 tests) pass against the production URL. |
 | Managed PostgreSQL + container host (Fly.io, Render, Railway…) for the API and web | **Untested.** Same images; set `ARCHITECTFLOW_DATABASE_URL` and build web with `ARCHITECTFLOW_API_ORIGIN`. |
 
 ## Docker Compose
@@ -36,6 +37,29 @@ obtains a Let's Encrypt certificate. The override also:
 - adds HSTS;
 - sets `FORWARDED_ALLOW_IPS` on the API, which is reachable only inside the Compose network, so
   logs and rate limits see the real client address.
+
+## Vercel
+
+Two Vercel projects from this repository, plus a PostgreSQL database (Neon through the Vercel
+Marketplace was used):
+
+| Project | Root directory | Framework preset | Environment |
+|---|---|---|---|
+| API | `apps/api` | FastAPI (entrypoint `apps/api/index.py`) | `ARCHITECTFLOW_DATABASE_URL` (sensitive): the provider's **pooled** URL with the scheme changed to `postgresql+psycopg://` |
+| Web | `apps/web` | Next.js | `ARCHITECTFLOW_API_ORIGIN`: the API project's production URL, read at build time |
+
+Run migrations from a trusted machine before the first deploy and after every schema change,
+using the provider's direct (unpooled) URL:
+
+```bash
+cd apps/api
+ARCHITECTFLOW_DATABASE_URL='postgresql+psycopg://…' uv run alembic upgrade head
+```
+
+The browser only talks to the web project; it proxies `/api/*` to the API, so the session cookie
+stays first-party. Limitations on serverless: rate limits are kept in process memory, so each
+function instance counts separately and the limits are looser than with one container. The
+share-link lookup limit is keyed by client address as seen by the API.
 
 ## Checklist
 - HTTPS everywhere; keep `ARCHITECTFLOW_SECURE_COOKIES=true`.
