@@ -10,12 +10,12 @@ from fastapi import APIRouter, HTTPException, Response, status
 from ..config import get_settings
 from ..deps import DB, CurrentPrincipal, OwnedProject
 from ..exports import FORMATS, render
+from ..ratelimit import RateLimiter
 from ..schema import ArchitectureDocument
-from ..security import RateLimiter
 from ..services import audit, get_revision
 
 router = APIRouter(prefix="/api/projects/{project_id}/exports", tags=["exports"])
-_limiter = RateLimiter(get_settings().exports_per_minute)
+_limiter = RateLimiter("export", get_settings().exports_per_minute)
 
 
 @router.get("")

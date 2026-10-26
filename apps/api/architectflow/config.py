@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     ai_requests_per_minute: int = Field(default=10, ge=1, le=1000)
     login_attempts_per_minute: int = Field(default=10, ge=1, le=1000)
     exports_per_minute: int = Field(default=60, ge=1, le=10000)
+    # database: counts shared by every API instance (PostgreSQL); memory: per process.
+    rate_limit_backend: Literal["database", "memory"] = "database"
     max_request_bytes: int = Field(default=2_000_000, ge=10_000)
 
 

@@ -140,3 +140,18 @@ class AuditEvent(Base):
     action: Mapped[str] = mapped_column(String(64))
     details: Mapped[dict[str, Any]] = mapped_column(JsonType, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class RateLimitHit(Base):
+    """Request counts per rate-limit key and fixed window, shared by every API instance.
+
+    `key` is sha256(limiter name + key) so client addresses and emails are not stored.
+    Rows are written only through `architectflow.ratelimit` (INSERT ... ON CONFLICT).
+    """
+
+    __tablename__ = "rate_limit_hits"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    count: Mapped[int] = mapped_column(Integer)
+    # window_start + 2 windows: after that the row is no longer read and may be deleted.
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

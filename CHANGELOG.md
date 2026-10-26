@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+### Changed
+- Rate limits (login, AI requests, exports, share-link lookups) are now counted in PostgreSQL
+  (new table `rate_limit_hits`, migration `0002`) and shared by every API process and
+  serverless instance; previously each process or Vercel function instance counted separately.
+  New setting `ARCHITECTFLOW_RATE_LIMIT_BACKEND` (`database`, the default, or `memory`). On a
+  database error the limiter allows the request and logs an error. Run `alembic upgrade head`
+  before deploying.
 ### Fixed (deep audit, each with a regression test that fails on the previous code)
 - Documents containing `NaN`/`Infinity`, NUL characters (U+0000) or nesting deeper than 64
   levels were accepted by validation and then failed in PostgreSQL with HTTP 500 (or 500 from

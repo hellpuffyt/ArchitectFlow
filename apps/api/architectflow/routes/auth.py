@@ -14,11 +14,12 @@ from ..ai.base import EXAMPLE_MODE_NOTICE
 from ..config import get_settings
 from ..deps import DB, SESSION_COOKIE, CurrentPrincipal
 from ..models import AuthSession, User
-from ..security import RateLimiter, hash_password, new_token, token_hash, verify_password
+from ..ratelimit import RateLimiter
+from ..security import hash_password, new_token, token_hash, verify_password
 from ..services import audit
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-_login_limiter = RateLimiter(get_settings().login_attempts_per_minute)
+_login_limiter = RateLimiter("login", get_settings().login_attempts_per_minute)
 
 
 class Credentials(BaseModel):

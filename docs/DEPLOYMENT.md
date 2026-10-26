@@ -19,7 +19,8 @@ docker compose up --build -d     # web on 127.0.0.1:3000
 ```
 
 Put HTTPS in front (cookies are `Secure` by default). The API image runs `alembic upgrade head`
-before starting. Run **one API worker per container**: rate limits are per process.
+before starting. Rate limits are counted in PostgreSQL, so several API workers or containers
+share them (`ARCHITECTFLOW_RATE_LIMIT_BACKEND=database`, the default).
 
 ## HTTPS with Caddy (example, verified locally)
 
@@ -57,9 +58,15 @@ ARCHITECTFLOW_DATABASE_URL='postgresql+psycopg://…' uv run alembic upgrade hea
 ```
 
 The browser only talks to the web project; it proxies `/api/*` to the API, so the session cookie
-stays first-party. Limitations on serverless: rate limits are kept in process memory, so each
-function instance counts separately and the limits are looser than with one container. The
-share-link lookup limit is keyed by client address as seen by the API.
+stays first-party. Rate limits (login, AI requests, exports, share-link lookups) are counted in
+the PostgreSQL table `rate_limit_hits`, so every function instance enforces the same limit; no
+Redis or other service is needed. Each rate-limited request costs one extra statement on its own
+short transaction. The table must exist: run the migrations (above) **before** deploying a
+version that includes migration `0002`. If it is missing or unreachable, requests are allowed
+and the function logs `rate limiter ... hit a database error; request allowed without a limit
+check`; watch the API project's logs for that message. Keep `ARCHITECTFLOW_RATE_LIMIT_BACKEND`
+unset (or `database`) on Vercel; `memory` brings back per-instance counting. The share-link
+lookup limit is keyed by client address as seen by the API.
 
 ### Preview deployments
 

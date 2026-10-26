@@ -24,13 +24,13 @@ from ..ai.example_design import generate_pages
 from ..config import get_settings
 from ..deps import DB, CurrentPrincipal, OwnedProject
 from ..models import ChangeSet
-from ..security import RateLimiter
+from ..ratelimit import RateLimiter
 from ..services import append_revision, audit, head_document, lock_project
 from ..validation import run_validation
 from .projects import ensure_not_archived
 
 router = APIRouter(prefix="/api/projects/{project_id}", tags=["ai"])
-_ai_limiter = RateLimiter(get_settings().ai_requests_per_minute)
+_ai_limiter = RateLimiter("ai", get_settings().ai_requests_per_minute)
 
 
 def get_provider() -> AIProvider:
