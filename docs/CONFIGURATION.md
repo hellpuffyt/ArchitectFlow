@@ -12,9 +12,10 @@ Settings are read from environment variables (see `apps/api/architectflow/config
 | `ARCHITECTFLOW_AI_MODEL` | – | Required for `openai`; `anthropic` defaults to `claude-sonnet-5`. |
 | `ARCHITECTFLOW_AI_BASE_URL` | provider default | e.g. a self-hosted OpenAI-compatible server. |
 | `ARCHITECTFLOW_AI_TIMEOUT_SECONDS` | `60` | Provider timeout → HTTP 504. |
-| `ARCHITECTFLOW_AI_REQUESTS_PER_MINUTE` | `10` | Per user, per API process. |
-| `ARCHITECTFLOW_LOGIN_ATTEMPTS_PER_MINUTE` | `10` | Per client address + email, per process. |
-| `ARCHITECTFLOW_EXPORTS_PER_MINUTE` | `60` | Per user, per process. |
+| `ARCHITECTFLOW_AI_REQUESTS_PER_MINUTE` | `10` | Per user. |
+| `ARCHITECTFLOW_LOGIN_ATTEMPTS_PER_MINUTE` | `10` | Per client address + email. |
+| `ARCHITECTFLOW_EXPORTS_PER_MINUTE` | `60` | Per user. Share-link lookups are fixed at 120/min per client address. |
+| `ARCHITECTFLOW_RATE_LIMIT_BACKEND` | `database` | Where rate-limit counts live. `database`: the PostgreSQL table `rate_limit_hits` (migration `0002`), shared by every API process and serverless instance; a 60 s sliding-window counter. `memory`: per process, in RAM (tests, offline use, a single worker). If the database limiter cannot reach its table, the request is **allowed** and an error is logged (see [SECURITY_MODEL.md](SECURITY_MODEL.md)). |
 | `ARCHITECTFLOW_MAX_REQUEST_BYTES` | `2000000` | Larger bodies get 413. |
 | `ARCHITECTFLOW_API_ORIGIN` (web, **build time**) | `http://127.0.0.1:8000` | Where the Next.js server proxies `/api/*`. |
 | `ARCHITECTFLOW_PG_PORT`, `PG_BIN` (scripts) | `54329`, auto | Port and binaries for `scripts/dev-db.sh`. |

@@ -12,11 +12,12 @@ from sqlalchemy import select
 
 from ..deps import DB, CurrentPrincipal, OwnedProject
 from ..models import Project, ShareLink
-from ..security import RateLimiter, new_token, token_hash
+from ..ratelimit import RateLimiter
+from ..security import new_token, token_hash
 from ..services import audit, get_revision
 
 router = APIRouter(tags=["share"])
-_lookup_limiter = RateLimiter(120)
+_lookup_limiter = RateLimiter("share-lookup", 120)
 
 
 class ShareCreate(BaseModel):

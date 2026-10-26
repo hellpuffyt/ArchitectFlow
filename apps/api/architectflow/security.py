@@ -1,12 +1,9 @@
-"""Password hashing, session tokens and in-process rate limiting."""
+"""Password hashing and session tokens. Rate limiting lives in `ratelimit.py`."""
 
 from __future__ import annotations
 
 import hashlib
 import secrets
-import threading
-import time
-from collections import deque
 
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
@@ -35,30 +32,3 @@ def new_token() -> str:
 
 def token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
-
-
-class RateLimiter:
-    """Sliding-window limiter keyed by an arbitrary string.
-
-    State is per process: with several API workers each enforces its own window.
-    This is documented in docs/LIMITATIONS.md.
-    """
-
-    def __init__(self, limit: int, window_seconds: float = 60.0) -> None:
-        self.limit = limit
-        self.window = window_seconds
-        self._hits: dict[str, deque[float]] = {}
-        self._lock = threading.Lock()
-
-    def allow(self, key: str) -> bool:
-        now = time.monotonic()
-        with self._lock:
-            hits = self._hits.setdefault(key, deque())
-            while hits and now - hits[0] > self.window:
-                hits.popleft()
-            if len(hits) >= self.limit:
-                return False
-            hits.append(now)
-            if len(self._hits) > 50_000:
-                self._hits = {k: v for k, v in self._hits.items() if v}
-            return True

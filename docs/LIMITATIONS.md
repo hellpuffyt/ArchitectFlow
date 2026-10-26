@@ -7,7 +7,9 @@
   compatible and Anthropic providers are tested against local mock HTTP servers only; the quality
   of real model output is not evaluated. The example design assistant understands a documented
   vocabulary (see the Design assistant tab) and changes nothing otherwise.
-- **Rate limits** are in-memory per API process; run one worker per container or add a shared store.
+- **Rate limits** are counted in PostgreSQL (shared by all API instances) as a 60 s sliding-window
+  counter; the client address is the one the API sees (configure the proxy's forwarded headers).
+  If the counter table is unavailable, requests are allowed and an error is logged.
 - **Screens:** the canvas and page designer are built for ≥ 1024 px; on phones navigation and
   forms work but graph editing is impractical.
 - **Theme:** the app shell has one complete dark theme; user themes (light/dark/system) are
