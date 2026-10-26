@@ -10,7 +10,9 @@ revision.**
 > labeled *example mode* (deterministic templates, not AI). Real LLM providers are supported
 > but have only been tested against local mock servers; see [Limitations](#limitations).
 
-[Case study ↗](https://hellpuff.dev/work/architectflow)
+[Live demo ↗](https://architectflow-omega.vercel.app) · [Case study ↗](https://hellpuff.dev/work/architectflow)
+
+The live demo runs in example mode on Vercel with a Neon PostgreSQL database. Sign-up is open; don't put anything private in it.
 
 ## Screenshots
 
@@ -217,9 +219,10 @@ and report vulnerabilities privately per [SECURITY.md](SECURITY.md).
 
 ## Deployment
 
-The API needs a long-running Python process and PostgreSQL, so a static/serverless host alone
-(e.g. Vercel) cannot run the whole app. Options and their verification status are in
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+ArchitectFlow needs three things: PostgreSQL, the FastAPI API and the Next.js web app. The live
+demo runs them as two Vercel projects (`apps/web` and `apps/api`) with a Neon database; Docker
+Compose behind a TLS proxy also works. Setup steps, the serverless rate-limit caveat and what has
+been verified for each option are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Troubleshooting
 
