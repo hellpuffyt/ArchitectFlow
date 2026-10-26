@@ -34,3 +34,4 @@ blob-report/
 .idea/
 .vscode/
 *.swp
+.vercel
