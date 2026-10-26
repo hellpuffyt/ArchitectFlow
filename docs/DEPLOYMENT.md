@@ -61,6 +61,17 @@ stays first-party. Limitations on serverless: rate limits are kept in process me
 function instance counts separately and the limits are looser than with one container. The
 share-link lookup limit is keyed by client address as seen by the API.
 
+### Preview deployments
+
+Preview deployments never touch production data:
+
+- The API project's **Preview** `ARCHITECTFLOW_DATABASE_URL` points at a separate Neon branch named
+  `preview`, emptied of rows when it was created. Run migrations on it like production.
+- The web project skips preview builds (Ignored Build Step: `[ "$VERCEL_ENV" != "production" ]`).
+  A web preview could only reach an API through `ARCHITECTFLOW_API_ORIGIN`, which is the
+  production API, so previews are off instead. CI builds and end-to-end tests the web app
+  on every pull request.
+
 ## Checklist
 - HTTPS everywhere; keep `ARCHITECTFLOW_SECURE_COOKIES=true`.
 - Back up PostgreSQL (revisions are the only copy of designs).
