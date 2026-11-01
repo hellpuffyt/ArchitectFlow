@@ -34,3 +34,10 @@ blob-report/
 .idea/
 .vscode/
 *.swp
+
+# ArchitectFlow generated designs (per-repo output)
+.architectflow/
+
+# CLI build + deps
+apps/cli/dist/
+apps/cli/node_modules/
